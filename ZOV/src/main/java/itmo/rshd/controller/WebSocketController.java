@@ -113,12 +113,22 @@ public class WebSocketController {
         double ratingChange = ratingUpdate.getRatingChange();  // The rating change
         
         // Update the target user's social rating
-        User updatedUser = userService.updateSocialRating(targetUserId, ratingChange);
+        User updatedTargetUser = userService.updateSocialRating(targetUserId, 
+            ratingChange);
         
-        // Notify all users about the rating change
-        webSocketService.notifyUserLocationUpdate(updatedUser);
+        // Update the rater's social rating based on their action
+        User updatedRaterUser = userService.updateRaterSocialRating(userId, 
+            targetUserId, ratingChange);
         
-        // Notify the target user specifically
-        webSocketService.notifySocialRatingChange(targetUserId, updatedUser);
+        // Notify all users about both updates
+        if (updatedTargetUser != null) {
+            webSocketService.notifyUserLocationUpdate(updatedTargetUser);
+            webSocketService.notifySocialRatingChange(targetUserId, updatedTargetUser);
+        }
+        
+        if (updatedRaterUser != null) {
+            webSocketService.notifyUserLocationUpdate(updatedRaterUser);
+            webSocketService.notifySocialRatingChange(userId, updatedRaterUser);
+        }
     }
 } 

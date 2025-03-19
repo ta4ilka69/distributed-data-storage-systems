@@ -45,9 +45,14 @@ export const userService = {
     return response.data;
   },
   
-  updateSocialRating: async (id: string, rating: number): Promise<User> => {
+  updateSocialRating: async (id: string, rating: number, raterId?: string): Promise<User> => {
+    const params: any = { rating };
+    if (raterId) {
+      params.raterId = raterId;
+    }
+    
     const response = await api.put(`/users/${id}/social-rating`, null, {
-      params: { rating }
+      params
     });
     return response.data;
   },

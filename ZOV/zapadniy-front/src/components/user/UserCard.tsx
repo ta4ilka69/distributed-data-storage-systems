@@ -52,18 +52,24 @@ const UserCard: React.FC<UserCardProps> = ({ user, onRate }) => {
       
       <div className="mt-4 flex justify-between">
         <button 
-          className="btn-secondary flex items-center gap-1"
+          className="btn-secondary flex items-center gap-1 relative group"
           onClick={() => onRate(user.id || '', -1)}
         >
           <HandThumbDownIcon className="h-5 w-5 text-red-500" />
           <span>Dislike</span>
+          <span className="absolute -top-10 left-0 bg-black text-white text-xs p-2 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+            Affects your own rating negatively
+          </span>
         </button>
         <button 
-          className="btn-primary flex items-center gap-1"
+          className="btn-primary flex items-center gap-1 relative group"
           onClick={() => onRate(user.id || '', 1)}
         >
           <HandThumbUpIcon className="h-5 w-5 text-white" />
           <span>Like</span>
+          <span className="absolute -top-10 right-0 bg-black text-white text-xs p-2 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+            Boosts your own rating too
+          </span>
         </button>
       </div>
     </div>

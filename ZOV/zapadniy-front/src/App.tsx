@@ -29,6 +29,36 @@ function App() {
     launchMissile
   } = useRegions(RegionType.COUNTRY);
 
+  // Add a notification system
+  const [notification, setNotification] = useState<{message: string, type: 'positive' | 'negative'} | null>(null);
+
+  // Wrap the rateUser function to add notifications
+  const handleRateUser = async (userId: string, rating: number) => {
+    const targetUser = nearbyUsers.find(user => user.id === userId);
+    const actionType = rating > 0 ? 'positive' : 'negative';
+    const previousRating = currentUser?.socialRating || 0;
+    
+    await rateUser(userId, rating);
+    
+    // Check if our rating changed after a short delay
+    setTimeout(() => {
+      if (currentUser && previousRating !== currentUser.socialRating) {
+        const ratingChange = currentUser.socialRating - previousRating;
+        const message = ratingChange > 0 
+          ? `Your rating increased by ${ratingChange.toFixed(1)} for being kind to ${targetUser?.fullName}`
+          : `Your rating decreased by ${Math.abs(ratingChange).toFixed(1)} for being negative to ${targetUser?.fullName}`;
+        
+        setNotification({
+          message,
+          type: ratingChange > 0 ? 'positive' : 'negative'
+        });
+        
+        // Clear notification after 5 seconds
+        setTimeout(() => setNotification(null), 5000);
+      }
+    }, 1000);
+  };
+
   // Connect to socket when user is loaded
   useEffect(() => {
     if (currentUser?.id) {
@@ -96,6 +126,14 @@ function App() {
       currentTab={currentTab} 
       onChangeTab={handleTabChange}
     >
+      {notification && (
+        <div className={`fixed top-4 right-4 p-4 rounded-md shadow-lg ${
+          notification.type === 'positive' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+        }`}>
+          {notification.message}
+        </div>
+      )}
+      
       {currentTab === 'profile' && (
         <div className="bg-white rounded-lg shadow overflow-hidden">
           <UserProfile 
@@ -112,7 +150,7 @@ function App() {
             users={nearbyUsers} 
             loading={nearbyLoading} 
             error={nearbyError} 
-            onRate={rateUser} 
+            onRate={handleRateUser} 
           />
         </div>
       )}

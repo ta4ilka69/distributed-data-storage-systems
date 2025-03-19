@@ -97,4 +97,65 @@ public class UserService {
     public List<User> findUsersBelowRating(double threshold) {
         return userRepository.findUsersBelowRating(threshold);
     }
+
+    /**
+     * Update user's social rating based on their rating of another user
+     * @param raterId ID of the user giving the rating
+     * @param targetId ID of the user being rated
+     * @param ratingChange The rating change (positive for like, negative for dislike)
+     * @return The updated rater user
+     */
+    public User updateRaterSocialRating(String raterId, String targetId, double ratingChange) {
+        Optional<User> raterOpt = userRepository.findById(raterId);
+        Optional<User> targetOpt = userRepository.findById(targetId);
+        
+        if (raterOpt.isPresent() && targetOpt.isPresent()) {
+            User rater = raterOpt.get();
+            User target = targetOpt.get();
+            double raterImpact = 0;
+            
+            // Calculate impact based on the target's status
+            switch (target.getStatus()) {
+                case VIP:
+                    // Rating a VIP has higher consequences
+                    raterImpact = ratingChange > 0 ? 5.0 : -10.0; // Rewarded for liking, punished more for disliking
+                    break;
+                case IMPORTANT:
+                    raterImpact = ratingChange > 0 ? 3.0 : -7.0;
+                    break;
+                case REGULAR:
+                    raterImpact = ratingChange > 0 ? 1.0 : -3.0;
+                    break;
+                case LOW:
+                    // Rating someone with low status has lower impact, but still incentivizes kindness
+                    raterImpact = ratingChange > 0 ? 0.5 : -1.0;
+                    break;
+            }
+            
+            // Update rater's social rating
+            double newRating = Math.max(0, Math.min(100, rater.getSocialRating() + raterImpact));
+            rater.setSocialRating(newRating);
+            
+            // Update status based on new rating
+            updateUserStatusBasedOnRating(rater);
+            
+            return userRepository.save(rater);
+        }
+        
+        return null;
+    }
+
+    // Helper method to update status based on rating
+    private void updateUserStatusBasedOnRating(User user) {
+        double rating = user.getSocialRating();
+        if (rating >= 90) {
+            user.setStatus(SocialStatus.VIP);
+        } else if (rating >= 70) {
+            user.setStatus(SocialStatus.IMPORTANT);
+        } else if (rating >= 40) {
+            user.setStatus(SocialStatus.REGULAR);
+        } else {
+            user.setStatus(SocialStatus.LOW);
+        }
+    }
 } 

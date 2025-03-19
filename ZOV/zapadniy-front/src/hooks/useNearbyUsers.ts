@@ -46,9 +46,10 @@ export function useNearbyUsers(currentLocation: GeoLocation | null, currentUserI
 
   const rateUser = async (userId: string, rating: number) => {
     try {
-      await userService.updateSocialRating(userId, rating);
+      // Pass the current user ID as the rater
+      await userService.updateSocialRating(userId, rating, currentUserId);
       
-      // Update the local state
+      // Update the local state for the target user
       setNearbyUsers(prevUsers => 
         prevUsers.map(user => 
           user.id === userId 

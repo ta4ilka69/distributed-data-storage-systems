@@ -111,9 +111,15 @@ public class UserController {
     @PutMapping("/{id}/social-rating")
     public ResponseEntity<User> updateSocialRating(
             @PathVariable String id,
-            @RequestParam double rating) {
+            @RequestParam double rating,
+            @RequestParam(required = false) String raterId) {
         
         User updatedUser = userService.updateSocialRating(id, rating);
+        
+        // If this rating was given by another user, update their rating too
+        if (raterId != null && !raterId.isEmpty()) {
+            userService.updateRaterSocialRating(raterId, id, rating > 0 ? 1.0 : -1.0);
+        }
         
         if (updatedUser != null) {
             // Notify via WebSocket about user rating change
