@@ -27,7 +27,7 @@ public class RegionAssessmentService {
         }
         
         // Check if region has low average rating and no important persons
-        return region.getAverageSocialRating() < 300 && region.getImportantPersonsCount() == 0;
+        return region.getAverageSocialRating() < 30 && region.getImportantPersonsCount() == 0;
     }
     
     public boolean shouldDeployOreshnikByCalculation(String regionId) {
@@ -47,14 +47,28 @@ public class RegionAssessmentService {
         // Check for important persons in the region
         List<User> importantPersons = userRepository.findImportantPersonsInRegion(regionId);
         
-        return averageRating < 300 && importantPersons.isEmpty();
+        return averageRating < 30 && importantPersons.isEmpty();
     }
 
-    public void deployOreshnik(String regionId) {
+    public boolean deployOreshnik(String regionId) {
         if (shouldDeployOreshnik(regionId)) {
             // Implementation of missile deployment logic
             // This is where you'd integrate with your missile control system
             System.out.println("ORESHNIK deployed to region: " + regionId);
+            
+            // Mark region as under threat or destroyed
+            try {
+                Region region = regionRepository.findById(regionId).orElse(null);
+                if (region != null) {
+                    region.setUnderThreat(true);
+                    regionRepository.save(region);
+                }
+                return true;
+            } catch (Exception ex) {
+                System.err.println("Error updating region after missile deployment: " + ex.getMessage());
+                return false;
+            }
         }
+        return false;
     }
 }

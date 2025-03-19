@@ -59,5 +59,5 @@ export function useCurrentUser() {
     }
   };
 
-  return { currentUser, loading, error, updateLocation };
+  return { currentUser, loading, error, updateLocation, setCurrentUser };
 } 

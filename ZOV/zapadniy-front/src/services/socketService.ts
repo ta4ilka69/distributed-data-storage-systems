@@ -1,83 +1,181 @@
-import { io, Socket } from 'socket.io-client';
+import { Client } from '@stomp/stompjs';
+import SockJS from 'sockjs-client';
 import { User, Region } from '../types';
 
-const SOCKET_URL = 'http://localhost:8080';
+const SOCKET_URL = 'http://localhost:8080/ws';
 
 class SocketService {
-  private socket: Socket | null = null;
+  private stompClient: Client | null = null;
   private userId: string | null = null;
+  private subscriptions: any[] = [];
 
   connect(userId: string): void {
     this.userId = userId;
-    this.socket = io(SOCKET_URL, {
-      query: { userId }
-    });
     
-    console.log('Socket connected for user:', userId);
+    const socket = new SockJS(SOCKET_URL);
+    this.stompClient = new Client({
+      webSocketFactory: () => socket,
+      debug: function(str) {
+        console.log('STOMP: ' + str);
+      },
+      reconnectDelay: 5000,
+      heartbeatIncoming: 4000,
+      heartbeatOutgoing: 4000
+    });
+
+    this.stompClient.onConnect = (frame) => {
+      console.log('Socket connected for user:', userId);
+      
+      // Send connect message
+      this.stompClient?.publish({
+        destination: '/app/connect',
+        body: userId
+      });
+      
+      // Subscribe to user-specific and global topics
+      this.subscribeToTopics();
+    };
+
+    this.stompClient.onStompError = (frame) => {
+      console.error('STOMP error:', frame.headers['message']);
+      console.error('Additional details:', frame.body);
+    };
+
+    this.stompClient.activate();
+  }
+
+  private subscribeToTopics(): void {
+    if (!this.stompClient || !this.userId) return;
+    
+    // Clear any existing subscriptions
+    this.clearSubscriptions();
+    
+    // Subscribe to global topics
+    this.subscriptions.push(
+      this.stompClient.subscribe('/topic/user-location-update', (message) => {
+        const user = JSON.parse(message.body);
+        if (this.callbacks.userLocationUpdate) {
+          this.callbacks.userLocationUpdate(user);
+        }
+      })
+    );
+    
+    this.subscriptions.push(
+      this.stompClient.subscribe('/topic/region-status-update', (message) => {
+        const region = JSON.parse(message.body);
+        if (this.callbacks.regionStatusUpdate) {
+          this.callbacks.regionStatusUpdate(region);
+        }
+      })
+    );
+    
+    this.subscriptions.push(
+      this.stompClient.subscribe('/topic/missile-launch', (message) => {
+        const data = JSON.parse(message.body);
+        if (this.callbacks.missileLaunch) {
+          this.callbacks.missileLaunch(data);
+        }
+      })
+    );
+    
+    // Subscribe to user-specific topics
+    this.subscriptions.push(
+      this.stompClient.subscribe(`/user/${this.userId}/queue/users-nearby-update`, (message) => {
+        const users = JSON.parse(message.body);
+        if (this.callbacks.usersNearbyUpdate) {
+          this.callbacks.usersNearbyUpdate(users);
+        }
+      })
+    );
+    
+    this.subscriptions.push(
+      this.stompClient.subscribe(`/user/${this.userId}/queue/social-rating-update`, (message) => {
+        const user = JSON.parse(message.body);
+        if (this.callbacks.socialRatingUpdate) {
+          this.callbacks.socialRatingUpdate(user);
+        }
+      })
+    );
+  }
+
+  private clearSubscriptions(): void {
+    this.subscriptions.forEach(subscription => {
+      try {
+        subscription.unsubscribe();
+      } catch (error) {
+        console.error('Error unsubscribing:', error);
+      }
+    });
+    this.subscriptions = [];
   }
 
   disconnect(): void {
-    if (this.socket) {
-      this.socket.disconnect();
-      this.socket = null;
+    this.clearSubscriptions();
+    
+    if (this.stompClient) {
+      this.stompClient.deactivate();
+      this.stompClient = null;
       this.userId = null;
       console.log('Socket disconnected');
     }
   }
 
+  // Callback storage
+  private callbacks: {
+    userLocationUpdate?: (user: User) => void;
+    usersNearbyUpdate?: (users: User[]) => void;
+    regionStatusUpdate?: (region: Region) => void;
+    missileLaunch?: (data: { regionId: string, missileType: string }) => void;
+    socialRatingUpdate?: (user: User) => void;
+  } = {};
+
   onUserLocationUpdate(callback: (user: User) => void): void {
-    if (!this.socket) return;
-    
-    this.socket.on('user-location-update', (data: User) => {
-      callback(data);
-    });
+    this.callbacks.userLocationUpdate = callback;
   }
 
   onUsersNearbyUpdate(callback: (users: User[]) => void): void {
-    if (!this.socket) return;
-    
-    this.socket.on('users-nearby-update', (data: User[]) => {
-      callback(data);
-    });
+    this.callbacks.usersNearbyUpdate = callback;
   }
 
   onRegionStatusUpdate(callback: (region: Region) => void): void {
-    if (!this.socket) return;
-    
-    this.socket.on('region-status-update', (data: Region) => {
-      callback(data);
-    });
+    this.callbacks.regionStatusUpdate = callback;
   }
 
   onMissileLaunch(callback: (data: { regionId: string, missileType: string }) => void): void {
-    if (!this.socket) return;
-    
-    this.socket.on('missile-launch', (data) => {
-      callback(data);
-    });
+    this.callbacks.missileLaunch = callback;
+  }
+
+  onSocialRatingUpdate(callback: (user: User) => void): void {
+    this.callbacks.socialRatingUpdate = callback;
   }
 
   updateLocation(latitude: number, longitude: number): void {
-    if (!this.socket) return;
+    if (!this.stompClient || !this.userId) return;
     
-    this.socket.emit('update-location', {
-      userId: this.userId,
-      location: { latitude, longitude }
+    this.stompClient.publish({
+      destination: '/app/update-location',
+      body: JSON.stringify({
+        userId: this.userId,
+        location: { latitude, longitude }
+      })
     });
   }
 
   ratePerson(targetUserId: string, ratingChange: number): void {
-    if (!this.socket) return;
+    if (!this.stompClient || !this.userId) return;
     
-    this.socket.emit('rate-person', {
-      userId: this.userId,
-      targetUserId,
-      ratingChange
+    this.stompClient.publish({
+      destination: '/app/rate-person',
+      body: JSON.stringify({
+        userId: this.userId,
+        targetUserId,
+        ratingChange
+      })
     });
   }
 
   isConnected(): boolean {
-    return this.socket !== null && this.socket.connected;
+    return this.stompClient !== null && this.stompClient.connected;
   }
 }
 

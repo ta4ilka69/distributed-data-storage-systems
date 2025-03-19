@@ -4,6 +4,7 @@ import itmo.rshd.model.GeoLocation;
 import itmo.rshd.model.Region;
 import itmo.rshd.model.Region.RegionType;
 import itmo.rshd.service.RegionService;
+import itmo.rshd.service.WebSocketService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -17,10 +18,12 @@ import java.util.Optional;
 public class RegionController {
 
     private final RegionService regionService;
+    private final WebSocketService webSocketService;
 
     @Autowired
-    public RegionController(RegionService regionService) {
+    public RegionController(RegionService regionService, WebSocketService webSocketService) {
         this.regionService = regionService;
+        this.webSocketService = webSocketService;
     }
 
     @PostMapping
@@ -48,6 +51,10 @@ public class RegionController {
         if (existingRegion.isPresent()) {
             region.setId(id);
             Region updatedRegion = regionService.updateRegion(region);
+            
+            // Notify all subscribers about region update
+            webSocketService.notifyRegionStatusUpdate(updatedRegion);
+            
             return new ResponseEntity<>(updatedRegion, HttpStatus.OK);
         } else {
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
@@ -100,6 +107,9 @@ public class RegionController {
         Region updatedRegion = regionService.updateRegionStatistics(id);
         
         if (updatedRegion != null) {
+            // Notify all subscribers about region update
+            webSocketService.notifyRegionStatusUpdate(updatedRegion);
+            
             return new ResponseEntity<>(updatedRegion, HttpStatus.OK);
         } else {
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
@@ -109,6 +119,13 @@ public class RegionController {
     @PutMapping("/statistics/all")
     public ResponseEntity<Void> updateAllRegionsStatistics() {
         regionService.updateAllRegionsStatistics();
+        
+        // Get all regions and notify about their updates
+        List<Region> regions = regionService.getAllRegions();
+        for (Region region : regions) {
+            webSocketService.notifyRegionStatusUpdate(region);
+        }
+        
         return new ResponseEntity<>(HttpStatus.OK);
     }
 

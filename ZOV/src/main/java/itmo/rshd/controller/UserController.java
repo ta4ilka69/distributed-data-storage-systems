@@ -3,6 +3,7 @@ package itmo.rshd.controller;
 import itmo.rshd.model.GeoLocation;
 import itmo.rshd.model.User;
 import itmo.rshd.service.UserService;
+import itmo.rshd.service.WebSocketService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -16,10 +17,12 @@ import java.util.Optional;
 public class UserController {
 
     private final UserService userService;
+    private final WebSocketService webSocketService;
 
     @Autowired
-    public UserController(UserService userService) {
+    public UserController(UserService userService, WebSocketService webSocketService) {
         this.userService = userService;
+        this.webSocketService = webSocketService;
     }
 
     @PostMapping
@@ -47,6 +50,10 @@ public class UserController {
         if (existingUser.isPresent()) {
             user.setId(id);
             User updatedUser = userService.updateUser(user);
+            
+            // Notify all subscribers about the update
+            webSocketService.notifyUserLocationUpdate(updatedUser);
+            
             return new ResponseEntity<>(updatedUser, HttpStatus.OK);
         } else {
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
@@ -77,6 +84,24 @@ public class UserController {
         User updatedUser = userService.updateUserLocation(id, location, regionId, districtId, countryId);
         
         if (updatedUser != null) {
+            // Notify via WebSocket about user location change
+            webSocketService.notifyUserLocationUpdate(updatedUser);
+            
+            // Find nearby users and notify this user
+            List<User> nearbyUsers = userService.findUsersNearLocation(location, 5.0);
+            webSocketService.notifyNearbyUsersUpdate(id, nearbyUsers);
+            
+            // Also notify nearby users about this user
+            for (User nearbyUser : nearbyUsers) {
+                if (!nearbyUser.getId().equals(id)) {
+                    List<User> usersNearOtherUser = userService.findUsersNearLocation(
+                            nearbyUser.getCurrentLocation(), 
+                            5.0
+                    );
+                    webSocketService.notifyNearbyUsersUpdate(nearbyUser.getId(), usersNearOtherUser);
+                }
+            }
+            
             return new ResponseEntity<>(updatedUser, HttpStatus.OK);
         } else {
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
@@ -91,6 +116,10 @@ public class UserController {
         User updatedUser = userService.updateSocialRating(id, rating);
         
         if (updatedUser != null) {
+            // Notify via WebSocket about user rating change
+            webSocketService.notifyUserLocationUpdate(updatedUser);
+            webSocketService.notifySocialRatingChange(id, updatedUser);
+            
             return new ResponseEntity<>(updatedUser, HttpStatus.OK);
         } else {
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);

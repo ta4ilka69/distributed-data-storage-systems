@@ -89,11 +89,18 @@ public class RegionService {
         return null;
     }
 
-    public void updateAllRegionsStatistics() {
+    public List<Region> updateAllRegionsStatistics() {
         List<Region> allRegions = regionRepository.findAll();
+        List<Region> updatedRegions = new java.util.ArrayList<>();
+        
         for (Region region : allRegions) {
-            updateRegionStatistics(region.getId());
+            Region updatedRegion = updateRegionStatistics(region.getId());
+            if (updatedRegion != null) {
+                updatedRegions.add(updatedRegion);
+            }
         }
+        
+        return updatedRegions;
     }
 
     public List<Region> findRegionsUnderThreat(RegionType type) {

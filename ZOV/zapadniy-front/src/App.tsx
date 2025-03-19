@@ -8,7 +8,7 @@ function App() {
   const [currentTab, setCurrentTab] = useState('profile');
   const [selectedRegion, setSelectedRegion] = useState<Region | null>(null);
   
-  const { currentUser, loading: userLoading, error: userError, updateLocation } = useCurrentUser();
+  const { currentUser, loading: userLoading, error: userError, updateLocation, setCurrentUser } = useCurrentUser();
   
   const { 
     nearbyUsers, 
@@ -33,6 +33,21 @@ function App() {
   useEffect(() => {
     if (currentUser?.id) {
       socketService.connect(currentUser.id);
+      
+      // Set up event handlers
+      socketService.onUserLocationUpdate((updatedUser) => {
+        if (updatedUser.id === currentUser.id) {
+          // Update the current user if it's us
+          setCurrentUser(updatedUser);
+        }
+      });
+      
+      socketService.onSocialRatingUpdate((updatedUser) => {
+        if (updatedUser.id === currentUser.id) {
+          // Update our social rating
+          setCurrentUser(updatedUser);
+        }
+      });
     }
     
     return () => {
