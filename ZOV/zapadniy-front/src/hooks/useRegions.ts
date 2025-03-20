@@ -11,6 +11,10 @@ export function useRegions(regionType: RegionType = RegionType.COUNTRY) {
   useEffect(() => {
     const fetchRegions = async () => {
       try {
+        // First update all region statistics to evaluate threat status
+        await regionService.updateAllRegionsStatistics();
+        
+        // Then fetch the regions with updated data
         const fetchedRegions = await regionService.getRegionsByType(regionType);
         console.log('Fetched regions:', fetchedRegions);
         setRegions(fetchedRegions);
@@ -75,8 +79,15 @@ export function useRegions(regionType: RegionType = RegionType.COUNTRY) {
       await missileService.launchMissileAtRegion(regionId, MissileType.ORESHNIK);
       setTargetRegionId(regionId);
       
+      // Wait briefly to allow the backend to process the missile launch
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
       // Update the region status
       const updatedRegion = await regionService.getRegionById(regionId);
+      
+      // Refresh all regions to update statistics for parent regions
+      await updateRegionStatistics();
+      
       setRegions(prevRegions => 
         prevRegions.map(region => 
           region.id === regionId ? updatedRegion : region

@@ -4,6 +4,7 @@ import { useCurrentUser, useNearbyUsers, useRegions } from './hooks';
 import { Region, RegionType, SocialStatus, User } from './types';
 import { socketService } from './services';
 import { authService } from './services/authService';
+import { regionService } from './services/regionService';
 
 function App() {
   const [currentTab, setCurrentTab] = useState('profile');
@@ -134,6 +135,34 @@ function App() {
     }
   };
 
+  // Add a function to navigate back to the parent region
+  const handleNavigateToParent = () => {
+    if (selectedRegion && selectedRegion.parentRegionId) {
+      // Find the parent region
+      const parentId = selectedRegion.parentRegionId;
+      
+      // Clear the current selection
+      setSelectedRegion(null);
+      setTargetRegionId(parentId);
+      
+      // Fetch the parent region data to display it
+      const fetchParentRegion = async () => {
+        try {
+          const parent = await regionService.getRegionById(parentId);
+          setSelectedRegion(parent);
+        } catch (error) {
+          console.error("Failed to fetch parent region:", error);
+        }
+      };
+      
+      fetchParentRegion();
+    } else {
+      // If no parent or at top level, reset to top level view
+      setSelectedRegion(null);
+      setTargetRegionId(null);
+    }
+  };
+
   const handleTabChange = (tab: string) => {
     setCurrentTab(tab);
     
@@ -214,6 +243,7 @@ function App() {
                 region={selectedRegion}
                 isGovernmentUser={isGovernmentUser}
                 onLaunchMissile={launchMissile}
+                onNavigateToParent={handleNavigateToParent}
               />
             </div>
           </div>

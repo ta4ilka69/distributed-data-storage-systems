@@ -17,11 +17,13 @@ public class RegionService {
 
     private final RegionRepository regionRepository;
     private final UserRepository userRepository;
+    private final RegionAssessmentService regionAssessmentService;
 
     @Autowired
-    public RegionService(RegionRepository regionRepository, UserRepository userRepository) {
+    public RegionService(RegionRepository regionRepository, UserRepository userRepository, RegionAssessmentService regionAssessmentService) {
         this.regionRepository = regionRepository;
         this.userRepository = userRepository;
+        this.regionAssessmentService = regionAssessmentService;
     }
 
     public Region createRegion(Region region) {
@@ -79,8 +81,8 @@ public class RegionService {
                 List<User> importantPersons = userRepository.findImportantPersonsInRegion(regionId);
                 region.setImportantPersonsCount(importantPersons.size());
                 
-                // Set threat status
-                boolean underThreat = region.getAverageSocialRating() < 300 && region.getImportantPersonsCount() == 0;
+                // Use RegionAssessmentService to determine if this region should be under threat
+                boolean underThreat = regionAssessmentService.shouldDeployOreshnik(region.getId());
                 region.setUnderThreat(underThreat);
                 
                 return regionRepository.save(region);

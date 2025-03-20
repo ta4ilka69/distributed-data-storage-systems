@@ -218,7 +218,7 @@ public class DataGenerator implements CommandLineRunner {
     private void createUsers(List<Region> districts, List<Region> cities, List<Region> federalRegions, Region country) {
         // Status distribution: 60% REGULAR, 25% LOW, 10% IMPORTANT, 5% VIP
         User.SocialStatus[] statusOptions = User.SocialStatus.values();
-        double[] statusDistribution = { 0.25, 0.60, 0.10, 0.05 };
+        double[] statusDistribution = { 0.39, 0.6, 0.0099, 0.0001 };
 
         List<User> users = new ArrayList<>();
 
