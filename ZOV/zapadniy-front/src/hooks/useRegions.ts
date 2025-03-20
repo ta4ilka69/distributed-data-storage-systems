@@ -12,9 +12,11 @@ export function useRegions(regionType: RegionType = RegionType.COUNTRY) {
     const fetchRegions = async () => {
       try {
         const fetchedRegions = await regionService.getRegionsByType(regionType);
+        console.log('Fetched regions:', fetchedRegions);
         setRegions(fetchedRegions);
         setLoading(false);
       } catch (err) {
+        console.error('Error fetching regions:', err);
         setError('Failed to fetch regions');
         setLoading(false);
       }
