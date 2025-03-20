@@ -303,7 +303,12 @@ public class DataGenerator implements CommandLineRunner {
     private User createSpecialUser(Region country, Region federalRegion, Region city, 
                                   User.SocialStatus status, double minRating, double maxRating) {
         User user = new User();
-        user.setUsername(faker.name().username());
+        // Generate unique username with timestamp and random number
+        String uniqueUsername = faker.name().firstName().toLowerCase() + 
+                               "." + faker.name().lastName().toLowerCase() + 
+                               "_" + System.currentTimeMillis() % 100000 + 
+                               faker.random().nextInt(1000, 9999);
+        user.setUsername(uniqueUsername);
         user.setPassword(faker.internet().password(8, 12));
         
         // Special users have "important" titles in their names
@@ -359,7 +364,12 @@ public class DataGenerator implements CommandLineRunner {
     private User createUser(Region country, Region federalRegion, Region city, Region district, 
                           User.SocialStatus status, double minRating, double maxRating) {
         User user = new User();
-        user.setUsername(faker.name().username());
+        // Generate unique username with timestamp and random number
+        String uniqueUsername = faker.name().firstName().toLowerCase() + 
+                               "." + faker.name().lastName().toLowerCase() + 
+                               "_" + System.currentTimeMillis() % 100000 + 
+                               faker.random().nextInt(1000, 9999);
+        user.setUsername(uniqueUsername);
         user.setPassword(faker.internet().password(8, 12));
         user.setFullName(faker.name().fullName());
         user.setSocialRating(ThreadLocalRandom.current().nextDouble(minRating, maxRating));

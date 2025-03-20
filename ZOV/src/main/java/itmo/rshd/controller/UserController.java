@@ -98,7 +98,7 @@ public class UserController {
             webSocketService.notifyUserLocationUpdate(updatedUser);
 
             // Find nearby users and notify this user
-            List<User> nearbyUsers = userService.findUsersNearLocation(location, 5.0);
+            List<User> nearbyUsers = userService.findUsersNearLocation(location, 50.0);
             webSocketService.notifyNearbyUsersUpdate(id, nearbyUsers);
 
             // Also notify nearby users about this user
@@ -106,7 +106,7 @@ public class UserController {
                 if (!nearbyUser.getId().equals(id)) {
                     List<User> usersNearOtherUser = userService.findUsersNearLocation(
                             nearbyUser.getCurrentLocation(),
-                            5.0);
+                            50.0);
                     webSocketService.notifyNearbyUsersUpdate(nearbyUser.getId(), usersNearOtherUser);
                 }
             }

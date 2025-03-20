@@ -51,7 +51,7 @@ public class WebSocketController {
             // Send nearby users to the connected user
             List<User> nearbyUsers = userService.findUsersNearLocation(
                     updatedUser.getCurrentLocation(),
-                    5.0 // Default 5km radius
+                    50.0 // Default 50km radius
             );
             webSocketService.notifyNearbyUsersUpdate(userId, nearbyUsers);
         }
@@ -87,7 +87,7 @@ public class WebSocketController {
             webSocketService.notifyUserLocationUpdate(updatedUser);
             
             // Find nearby users and notify the user
-            List<User> nearbyUsers = userService.findUsersNearLocation(location, 5.0);
+            List<User> nearbyUsers = userService.findUsersNearLocation(location, 50.0);
             webSocketService.notifyNearbyUsersUpdate(userId, nearbyUsers);
             
             // Also notify nearby users about this user
@@ -95,7 +95,7 @@ public class WebSocketController {
                 if (!nearbyUser.getId().equals(userId)) {
                     List<User> usersNearNearbyUser = userService.findUsersNearLocation(
                             nearbyUser.getCurrentLocation(), 
-                            5.0
+                            50.0
                     );
                     webSocketService.notifyNearbyUsersUpdate(nearbyUser.getId(), usersNearNearbyUser);
                 }
