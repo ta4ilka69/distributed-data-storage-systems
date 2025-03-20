@@ -92,24 +92,12 @@ public class UserService {
         // Convert km to meters for MongoDB query
         double maxDistanceMeters = maxDistanceKm * 1000;
         
-        try {
-            // Try to use Spring Data's built-in geospatial query first
-            if (location.getPosition() != null) {
-                return userRepository.findByCurrentLocationPositionNear(
-                    new org.springframework.data.geo.Point(
-                        location.getPosition().getX(), 
-                        location.getPosition().getY()
-                    ),
-                    new org.springframework.data.geo.Distance(maxDistanceKm, org.springframework.data.geo.Metrics.KILOMETERS)
-                );
-            }
-        } catch (Exception e) {
-            // Fall back to manual query if there's an issue
-            System.out.println("Warning: Using fallback query for near users search - " + e.getMessage());
-        }
-        
-        // Fallback to the custom query
-        return userRepository.findUsersNearLocation(location.getLongitude(), location.getLatitude(), maxDistanceMeters);
+        // Use the new geospatial query method
+        return userRepository.findByCurrentLocationNear(
+            location.getLatitude(),
+            location.getLongitude(),
+            maxDistanceMeters
+        );
     }
 
     public List<User> findUsersBelowRating(double threshold) {

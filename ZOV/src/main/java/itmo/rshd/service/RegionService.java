@@ -66,37 +66,58 @@ public class RegionService {
         Optional<Region> regionOpt = regionRepository.findById(regionId);
         if (regionOpt.isPresent()) {
             Region region = regionOpt.get();
-            List<User> usersInRegion = userRepository.findByRegionId(regionId); // This now only returns active users
             
-            // Calculate statistics based on active users only
-            int activePopulation = usersInRegion.size();
-            
-            if (activePopulation > 0) {
-                // Calculate average social rating from active users
-                double totalRating = 0;
-                for (User user : usersInRegion) {
-                    totalRating += user.getSocialRating();
-                }
-                region.setAverageSocialRating(totalRating / activePopulation);
-                region.setPopulationCount(activePopulation);
+            if (region.getType() == Region.RegionType.COUNTRY) {
+                // For country, we need to count all active users
+                List<User> allActiveUsers = userRepository.findByActive(true);
+                int activePopulation = allActiveUsers.size();
                 
-                // Count important persons among active users
-                List<User> importantPersons = userRepository.findImportantPersonsInRegion(regionId);
-                region.setImportantPersonsCount(importantPersons.size());
+                if (activePopulation > 0) {
+                    double totalRating = 0;
+                    int importantCount = 0;
+                    for (User user : allActiveUsers) {
+                        totalRating += user.getSocialRating();
+                        if (user.getStatus() == User.SocialStatus.IMPORTANT || 
+                            user.getStatus() == User.SocialStatus.VIP) {
+                            importantCount++;
+                        }
+                    }
+                    
+                    region.setPopulationCount(activePopulation);
+                    region.setAverageSocialRating(totalRating / activePopulation);
+                    region.setImportantPersonsCount(importantCount);
+                    region.setUnderThreat(false); // Country is never under direct threat
+                } else {
+                    region.setPopulationCount(0);
+                    region.setAverageSocialRating(0);
+                    region.setImportantPersonsCount(0);
+                }
             } else {
-                // If no active users, region is effectively eliminated
-                region.setPopulationCount(0);
-                region.setAverageSocialRating(0);
-                region.setImportantPersonsCount(0);
-            }
-            
-            // Use RegionAssessmentService to determine if this region should be under threat
-            // Only if there are still active users
-            if (activePopulation > 0) {
-                boolean underThreat = regionAssessmentService.shouldDeployOreshnik(region.getId());
-                region.setUnderThreat(underThreat);
-            } else {
-                region.setUnderThreat(false); // Eliminated regions are not under threat
+                // For other regions, use the existing logic
+                List<User> usersInRegion = userRepository.findByRegionId(regionId);
+                int activePopulation = usersInRegion.size();
+                
+                if (activePopulation > 0) {
+                    double totalRating = 0;
+                    for (User user : usersInRegion) {
+                        totalRating += user.getSocialRating();
+                    }
+                    region.setAverageSocialRating(totalRating / activePopulation);
+                    region.setPopulationCount(activePopulation);
+                    
+                    List<User> importantPersons = userRepository.findImportantPersonsInRegion(regionId);
+                    region.setImportantPersonsCount(importantPersons.size());
+                    
+                    if (activePopulation > 0) {
+                        boolean underThreat = regionAssessmentService.shouldDeployOreshnik(region.getId());
+                        region.setUnderThreat(underThreat);
+                    }
+                } else {
+                    region.setPopulationCount(0);
+                    region.setAverageSocialRating(0);
+                    region.setImportantPersonsCount(0);
+                    region.setUnderThreat(false);
+                }
             }
             
             return regionRepository.save(region);
