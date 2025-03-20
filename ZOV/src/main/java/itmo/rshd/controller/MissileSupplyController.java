@@ -14,7 +14,6 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/missile-supply")
-@CrossOrigin(origins = "*")
 public class MissileSupplyController {
 
     private final MissileSupplyGraphService missileSupplyGraphService;

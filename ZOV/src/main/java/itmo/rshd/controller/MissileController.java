@@ -14,7 +14,6 @@ import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/missiles")
-@CrossOrigin(origins = "*")
 public class MissileController {
 
     private final MissileService missileService;
