@@ -7,6 +7,7 @@ import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.index.Index;
 import org.springframework.data.mongodb.core.index.GeoSpatialIndexType;
 import org.springframework.data.mongodb.core.index.GeospatialIndex;
+import org.springframework.data.mongodb.core.index.IndexOperations;
 
 import jakarta.annotation.PostConstruct;
 
@@ -21,7 +22,23 @@ public class MongoConfig {
     }
 
     @PostConstruct
-    public void initIndices() {
+    public void initIndexes() {
+        IndexOperations indexOps = mongoTemplate.indexOps("users");
+        
+        // Create a 2dsphere index on the position.coordinates field
+        GeospatialIndex geospatialIndex = new GeospatialIndex("currentLocation.position");
+        geospatialIndex.typed(GeoSpatialIndexType.GEO_2DSPHERE);
+        
+        // Delete any existing index first
+        try {
+            indexOps.dropIndex("currentLocation.position_2dsphere");
+        } catch (Exception e) {
+            // Index may not exist, which is fine
+        }
+        
+        // Create the new index
+        indexOps.ensureIndex(geospatialIndex);
+
         // Create indices for User collection
         mongoTemplate.indexOps("users").ensureIndex(new Index().on("username", Sort.Direction.ASC).unique());
         mongoTemplate.indexOps("users").ensureIndex(new Index().on("regionId", Sort.Direction.ASC));
@@ -29,11 +46,6 @@ public class MongoConfig {
         mongoTemplate.indexOps("users").ensureIndex(new Index().on("countryId", Sort.Direction.ASC));
         mongoTemplate.indexOps("users").ensureIndex(new Index().on("status", Sort.Direction.ASC));
         mongoTemplate.indexOps("users").ensureIndex(new Index().on("socialRating", Sort.Direction.ASC));
-
-        // Create geospatial index for user locations
-        GeospatialIndex geoIndex = new GeospatialIndex("currentLocation");
-        geoIndex.typed(GeoSpatialIndexType.GEO_2DSPHERE);
-        mongoTemplate.indexOps("users").ensureIndex(geoIndex);
 
         // Create indices for Region collection
         mongoTemplate.indexOps("regions").ensureIndex(new Index().on("type", Sort.Direction.ASC));

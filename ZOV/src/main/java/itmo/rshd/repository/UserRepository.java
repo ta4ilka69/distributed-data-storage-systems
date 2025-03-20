@@ -2,6 +2,8 @@ package itmo.rshd.repository;
 
 import itmo.rshd.model.User;
 import itmo.rshd.model.User.SocialStatus;
+import org.springframework.data.geo.Distance;
+import org.springframework.data.geo.Point;
 import org.springframework.data.mongodb.repository.MongoRepository;
 import org.springframework.data.mongodb.repository.Query;
 import org.springframework.stereotype.Repository;
@@ -21,7 +23,11 @@ public interface UserRepository extends MongoRepository<User, String> {
     
     List<User> findByStatus(SocialStatus status);
     
-    @Query("{'currentLocation': {$near: {$geometry: {type: 'Point', coordinates: [?0, ?1]}, $maxDistance: ?2}}}")
+    // Using Spring Data's built-in geospatial queries
+    List<User> findByCurrentLocationPositionNear(Point location, Distance distance);
+    
+    // For compatibility with existing service methods
+    @Query("{'currentLocation.position': {$near: {$geometry: {type: 'Point', coordinates: [?0, ?1]}, $maxDistance: ?2}}}")
     List<User> findUsersNearLocation(double longitude, double latitude, double maxDistanceMeters);
     
     @Query("{'regionId': ?0, 'status': {$in: ['IMPORTANT', 'VIP']}}")

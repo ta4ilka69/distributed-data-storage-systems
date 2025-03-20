@@ -1,15 +1,28 @@
 package itmo.rshd.model;
 
-import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.springframework.data.mongodb.core.geo.GeoJsonPoint;
+import org.springframework.data.mongodb.core.index.GeoSpatialIndexType;
+import org.springframework.data.mongodb.core.index.GeoSpatialIndexed;
 
 @Data
 @NoArgsConstructor
-@AllArgsConstructor
 public class GeoLocation {
+    // Use Spring's built-in GeoJsonPoint which properly formats for MongoDB
+    @GeoSpatialIndexed(type = GeoSpatialIndexType.GEO_2DSPHERE)
+    private GeoJsonPoint position;
+    
+    // Keep these for backward compatibility with existing code
     private double latitude;
     private double longitude;
+    
+    public GeoLocation(double latitude, double longitude) {
+        this.latitude = latitude;
+        this.longitude = longitude;
+        // MongoDB expects GeoJSON format with longitude first
+        this.position = new GeoJsonPoint(longitude, latitude);
+    }
     
     // Calculate distance between two points in kilometers using the Haversine formula
     public double distanceFrom(GeoLocation other) {
