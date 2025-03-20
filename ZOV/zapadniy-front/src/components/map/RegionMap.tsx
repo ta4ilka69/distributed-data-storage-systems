@@ -70,8 +70,12 @@ const RegionMap: React.FC<RegionMapProps> = ({
   // Fetch and display subregions
   useEffect(() => {
     const fetchSubRegions = async () => {
-      const subRegions = await regionService.getSubRegions(targetRegionId || '');
-      setSubRegions(subRegions);
+      if (targetRegionId) {
+        const subRegions = await regionService.getSubRegions(targetRegionId);
+        setSubRegions(subRegions);
+      } else {
+        setSubRegions([]);
+      }
     };
     fetchSubRegions();
   }, [targetRegionId]);

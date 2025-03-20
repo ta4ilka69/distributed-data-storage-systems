@@ -35,7 +35,8 @@ function App() {
     loading: regionsLoading,
     error: regionsError,
     targetRegionId,
-    launchMissile
+    launchMissile,
+    setTargetRegionId
   } = useRegions(RegionType.COUNTRY);
 
   // Add a notification system
@@ -128,6 +129,9 @@ function App() {
 
   const handleRegionSelect = (region: Region) => {
     setSelectedRegion(region);
+    if (region && region.id) {
+      setTargetRegionId(region.id);
+    }
   };
 
   const handleTabChange = (tab: string) => {

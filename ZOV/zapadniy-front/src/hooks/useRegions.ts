@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Region, RegionType } from '../types';
+import { MissileType, Region, RegionType } from '../types';
 import { regionService, missileService, socketService } from '../services';
 
 export function useRegions(regionType: RegionType = RegionType.COUNTRY) {
@@ -72,7 +72,7 @@ export function useRegions(regionType: RegionType = RegionType.COUNTRY) {
 
   const launchMissile = async (regionId: string) => {
     try {
-      await missileService.launchMissileAtRegion(regionId, 'ORESHNIK');
+      await missileService.launchMissileAtRegion(regionId, MissileType.ORESHNIK);
       setTargetRegionId(regionId);
       
       // Update the region status
@@ -95,6 +95,7 @@ export function useRegions(regionType: RegionType = RegionType.COUNTRY) {
     getRegionColor,
     fetchSubRegions,
     updateRegionStatistics,
-    launchMissile 
+    launchMissile,
+    setTargetRegionId
   };
 } 
