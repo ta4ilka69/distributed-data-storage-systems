@@ -2,8 +2,8 @@ package itmo.rshd.model;
 
 import lombok.Data;
 import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.geo.GeoJsonPolygon;
 import org.springframework.data.mongodb.core.mapping.Document;
-import java.util.List;
 
 @Data
 @Document(collection = "regions")
@@ -13,7 +13,7 @@ public class Region {
     private String name;
     private RegionType type;
     private String parentRegionId; // For hierarchical structure (district -> city -> country)
-    private List<GeoLocation> boundaries; // Simplified representation of region boundaries
+    private GeoJsonPolygon boundaries; // Changed to GeoJsonPolygon
     private double averageSocialRating; // Calculated field
     private int populationCount;
     private int importantPersonsCount; // Count of people with IMPORTANT or VIP status

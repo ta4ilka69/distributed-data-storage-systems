@@ -9,6 +9,7 @@ import itmo.rshd.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
+import org.springframework.data.mongodb.core.geo.GeoJsonPolygon;
 
 import java.util.*;
 import java.util.concurrent.ThreadLocalRandom;
@@ -75,13 +76,16 @@ public class DataGenerator implements CommandLineRunner {
         russia.setImportantPersonsCount(0);
         russia.setUnderThreat(false);
         
-        // Set approximate boundaries for Russia
-        List<GeoLocation> boundaries = new ArrayList<>();
-        boundaries.add(new GeoLocation(59.0, 30.0));  // Northwest
-        boundaries.add(new GeoLocation(59.0, 180.0)); // Northeast
-        boundaries.add(new GeoLocation(44.0, 180.0)); // Southeast
-        boundaries.add(new GeoLocation(44.0, 30.0));  // Southwest
-        russia.setBoundaries(boundaries);
+        // Create GeoJsonPolygon for Russia's boundaries
+        List<org.springframework.data.geo.Point> polygonPoints = Arrays.asList(
+            new org.springframework.data.geo.Point(30.0, 59.0),
+            new org.springframework.data.geo.Point(180.0, 59.0),
+            new org.springframework.data.geo.Point(180.0, 44.0),
+            new org.springframework.data.geo.Point(30.0, 44.0),
+            new org.springframework.data.geo.Point(30.0, 59.0) // Closing the polygon
+        );
+        
+        russia.setBoundaries(new GeoJsonPolygon(polygonPoints));
         
         return regionRepository.save(russia);
     }
