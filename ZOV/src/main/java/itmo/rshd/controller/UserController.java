@@ -14,6 +14,7 @@ import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/users")
+@CrossOrigin(origins = "*")
 public class UserController {
 
     private final UserService userService;
@@ -23,6 +24,16 @@ public class UserController {
     public UserController(UserService userService, WebSocketService webSocketService) {
         this.userService = userService;
         this.webSocketService = webSocketService;
+    }
+
+    @PostMapping("/login")
+    public ResponseEntity<User> login(@RequestParam String username, @RequestParam String password) {
+        User user = userService.findByUsername(username);
+        if (user != null && user.getPassword().equals(password)) {
+            return new ResponseEntity<>(user, HttpStatus.OK);
+        } else {
+            return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
+        }
     }
 
     @PostMapping
@@ -159,5 +170,20 @@ public class UserController {
     public ResponseEntity<List<User>> getUsersBelowRating(@PathVariable double threshold) {
         List<User> users = userService.findUsersBelowRating(threshold);
         return new ResponseEntity<>(users, HttpStatus.OK);
+    }
+
+    @GetMapping("/test-users")
+    public ResponseEntity<List<Object>> getTestUserCredentials() {
+        List<User> users = userService.getAllUsers();
+        List<Object> credentials = users.stream()
+            .map(user -> new Object() {
+                public final String username = user.getUsername();
+                public final String password = user.getPassword();
+                public final String fullName = user.getFullName();
+                public final User.SocialStatus status = user.getStatus();
+            })
+            .limit(20) // Limit to first 20 users
+            .collect(java.util.stream.Collectors.toList());
+        return new ResponseEntity<>(credentials, HttpStatus.OK);
     }
 }

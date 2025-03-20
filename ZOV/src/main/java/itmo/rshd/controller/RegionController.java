@@ -15,6 +15,7 @@ import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/regions")
+@CrossOrigin(origins = "*")
 public class RegionController {
 
     private final RegionService regionService;

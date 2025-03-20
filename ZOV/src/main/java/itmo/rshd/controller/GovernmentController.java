@@ -7,6 +7,7 @@ import itmo.rshd.service.RegionAssessmentService;
 
 @RestController
 @RequestMapping("/api/government")
+@CrossOrigin(origins = "*")
 public class GovernmentController {
     
     @Autowired
