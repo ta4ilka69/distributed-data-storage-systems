@@ -9,16 +9,21 @@ const transformRegionBoundaries = (region: any): Region => {
     const { type, coordinates } = region.boundaries;
 
     if (type === 'Polygon' && Array.isArray(coordinates)) {
-      const exteriorRing = coordinates[0];
+      const exteriorRing = coordinates[0]?.coordinates || [];
       if (Array.isArray(exteriorRing)) {
-        transformedRegion.boundaries = exteriorRing.map((coord: number[]) => ({
-          longitude: coord[0],
-          latitude: coord[1]
+        transformedRegion.boundaries = exteriorRing.map((point: any) => ({
+          longitude: point.coordinates[0],
+          latitude: point.coordinates[1]
         }));
       } else {
         transformedRegion.boundaries = [];
         console.warn(`Region ${region.name} has invalid Polygon coordinates:`, exteriorRing);
       }
+    } else if (type === 'LineString' && Array.isArray(coordinates)) {
+      transformedRegion.boundaries = coordinates.map((point: any) => ({
+        longitude: point.coordinates?.[0] || point.x || 0,
+        latitude: point.coordinates?.[1] || point.y || 0
+      }));
     } else if (type === 'MultiPolygon' && Array.isArray(coordinates)) {
       const firstPolygon = coordinates[0];
       if (Array.isArray(firstPolygon) && Array.isArray(firstPolygon[0])) {
