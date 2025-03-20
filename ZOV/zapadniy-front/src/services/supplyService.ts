@@ -28,6 +28,23 @@ export const supplyService = {
     return response.data;
   },
 
+  updateDepot: async (depot: SupplyDepot): Promise<SupplyDepot> => {
+    const response = await api.put(`/missile-supply/depots/${depot.depotId}`, null, {
+      params: {
+        name: depot.name,
+        capacity: depot.capacity,
+        currentStock: depot.currentStock,
+        type: depot.type,
+        securityLevel: depot.securityLevel
+      },
+    });
+    return response.data;
+  },
+
+  deleteDepot: async (depotId: string): Promise<void> => {
+    await api.delete(`/missile-supply/depots/${depotId}`);
+  },
+
   // Routes
   getAllRoutes: async (): Promise<SupplyRoute[]> => {
     const response = await api.get("/missile-supply/routes");
