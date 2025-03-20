@@ -76,25 +76,32 @@ export function useRegions(regionType: RegionType = RegionType.COUNTRY) {
 
   const launchMissile = async (regionId: string) => {
     try {
+      setError(null);
       await missileService.launchMissileAtRegion(regionId, MissileType.ORESHNIK);
       setTargetRegionId(regionId);
       
-      // Wait briefly to allow the backend to process the missile launch
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Wait a bit longer for the server to process eliminations and parent region updates
+      await new Promise(resolve => setTimeout(resolve, 2000));
       
-      // Update the region status
+      // Retrieve updated region data
       const updatedRegion = await regionService.getRegionById(regionId);
+      console.log('Updated region after missile strike:', updatedRegion);
       
-      // Refresh all regions to update statistics for parent regions
+      // Also retrieve parent region if it exists
+      if (updatedRegion.parentRegionId) {
+        const updatedParent = await regionService.getRegionById(updatedRegion.parentRegionId);
+        console.log('Updated parent region after missile strike:', updatedParent);
+      }
+      
+      // Refresh all regions to update statistics
       await updateRegionStatistics();
       
-      setRegions(prevRegions => 
-        prevRegions.map(region => 
-          region.id === regionId ? updatedRegion : region
-        )
-      );
+      // Specifically update the display regions
+      const updatedRegions = await regionService.getRegionsByType(regionType);
+      setRegions(updatedRegions);
     } catch (err) {
-      setError('Failed to launch missile');
+      console.error('Failed to launch missile:', err);
+      setError('Failed to launch missile. Check server logs for details.');
     }
   };
 

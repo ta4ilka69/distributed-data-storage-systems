@@ -66,27 +66,40 @@ public class RegionService {
         Optional<Region> regionOpt = regionRepository.findById(regionId);
         if (regionOpt.isPresent()) {
             Region region = regionOpt.get();
-            List<User> usersInRegion = userRepository.findByRegionId(regionId);
+            List<User> usersInRegion = userRepository.findByRegionId(regionId); // This now only returns active users
             
-            if (!usersInRegion.isEmpty()) {
-                // Calculate average social rating
+            // Calculate statistics based on active users only
+            int activePopulation = usersInRegion.size();
+            
+            if (activePopulation > 0) {
+                // Calculate average social rating from active users
                 double totalRating = 0;
                 for (User user : usersInRegion) {
                     totalRating += user.getSocialRating();
                 }
-                region.setAverageSocialRating(totalRating / usersInRegion.size());
-                region.setPopulationCount(usersInRegion.size());
+                region.setAverageSocialRating(totalRating / activePopulation);
+                region.setPopulationCount(activePopulation);
                 
-                // Count important persons
+                // Count important persons among active users
                 List<User> importantPersons = userRepository.findImportantPersonsInRegion(regionId);
                 region.setImportantPersonsCount(importantPersons.size());
-                
-                // Use RegionAssessmentService to determine if this region should be under threat
+            } else {
+                // If no active users, region is effectively eliminated
+                region.setPopulationCount(0);
+                region.setAverageSocialRating(0);
+                region.setImportantPersonsCount(0);
+            }
+            
+            // Use RegionAssessmentService to determine if this region should be under threat
+            // Only if there are still active users
+            if (activePopulation > 0) {
                 boolean underThreat = regionAssessmentService.shouldDeployOreshnik(region.getId());
                 region.setUnderThreat(underThreat);
-                
-                return regionRepository.save(region);
+            } else {
+                region.setUnderThreat(false); // Eliminated regions are not under threat
             }
+            
+            return regionRepository.save(region);
         }
         return null;
     }

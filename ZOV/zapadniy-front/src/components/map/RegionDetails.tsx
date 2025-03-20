@@ -72,18 +72,22 @@ const RegionDetails: React.FC<RegionDetailsProps> = ({
   };
 
   const isEliminated = region.populationCount === 0;
+  const regionStyle = isEliminated ? 
+    { backgroundColor: 'rgba(0, 0, 0, 0.9)', color: '#ff0000', borderRadius: '0.5rem', border: '2px solid #ff0000' } : 
+    {};
 
   return (
-    <div className="card p-6">
-      <div className="flex justify-between items-center border-b pb-3 mb-4">
-        <h2 className="text-xl font-bold text-gray-800">
+    <div className="card p-6" style={regionStyle}>
+      <div className="flex justify-between items-center border-b pb-3 mb-4" style={{ borderColor: isEliminated ? '#ff0000' : '' }}>
+        <h2 className="text-xl font-bold" style={{ color: isEliminated ? '#ff0000' : '#1f2937' }}>
           {region.name} - {region.type}
+          {isEliminated && <span className="ml-2 text-red-600 animate-pulse">⚠ ELIMINATED ⚠</span>}
         </h2>
 
         {region.parentRegionId && onNavigateToParent && (
           <button
             onClick={onNavigateToParent}
-            className="flex items-center text-sm text-blue-600 hover:text-blue-800"
+            className={`flex items-center text-sm ${isEliminated ? 'text-red-400 hover:text-red-300' : 'text-blue-600 hover:text-blue-800'}`}
           >
             <ArrowUpIcon className="h-4 w-4 mr-1" />
             Up to Parent
@@ -95,10 +99,14 @@ const RegionDetails: React.FC<RegionDetailsProps> = ({
         {isEliminated ? (
           <div className="bg-black p-4 rounded-md text-center">
             <p className="font-bold text-red-500 text-lg mb-2">REGION ELIMINATED</p>
-            <p className="text-gray-300">
+            <p className="text-gray-400">
               This region has been destroyed by an ORESHNIK missile strike.
               All inhabitants have been eliminated.
             </p>
+            <div className="mt-4 border-t border-red-800 pt-4">
+              <p className="text-gray-500 text-sm">Previous population: Unknown</p>
+              <p className="text-gray-500 text-sm">Current population: 0</p>
+            </div>
           </div>
         ) : (
           <>
