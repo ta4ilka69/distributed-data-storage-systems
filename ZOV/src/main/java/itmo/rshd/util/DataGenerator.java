@@ -277,9 +277,6 @@ public class DataGenerator implements CommandLineRunner {
     }
 
     private void createUsers(List<Region> districts, List<Region> cities, List<Region> federalRegions, Region country) {
-        // Status distribution based on district type
-        User.SocialStatus[] statusOptions = User.SocialStatus.values();
-
         List<User> users = new ArrayList<>();
 
         // Create country president
