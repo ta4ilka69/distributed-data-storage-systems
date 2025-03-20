@@ -8,6 +8,7 @@ import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Map;
 
 @Service
 public class WebSocketService {
@@ -64,5 +65,12 @@ public class WebSocketService {
                 "/queue/social-rating-update",
                 updatedUser
         );
+    }
+    
+    /**
+     * Notifies clients about changes in the missile supply chain
+     */
+    public void notifySupplyChainUpdate(Map<String, Object> supplyChainData) {
+        messagingTemplate.convertAndSend("/topic/supply-chain", supplyChainData);
     }
 } 

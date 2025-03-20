@@ -5,9 +5,10 @@ import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.__;
 import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Service;
 import jakarta.annotation.PostConstruct;
-
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -17,6 +18,11 @@ import java.util.stream.Collectors;
 public class MissileSupplyGraphService {
 
     private final GraphTraversalSource g;
+    
+    @Autowired
+    private ApplicationContext applicationContext;
+    
+    private GeospatialService geospatialService;
 
     @Autowired
     public MissileSupplyGraphService(GraphTraversalSource g) {
@@ -29,6 +35,9 @@ public class MissileSupplyGraphService {
         if (g.V().hasLabel("SupplyDepot").count().next() == 0) {
             createInitialSchema();
         }
+        
+        // Get GeospatialService after all beans are initialized to avoid circular dependency
+        this.geospatialService = applicationContext.getBean(GeospatialService.class);
     }
 
     private void createInitialSchema() {
@@ -157,5 +166,91 @@ public class MissileSupplyGraphService {
                     return convertedMap;
                 })
                 .collect(Collectors.toList());
+    }
+
+    /**
+     * Gets all active supply routes in the system
+     */
+    public List<Map<String, Object>> getAllSupplyRoutes() {
+        List<Map<String, Object>> result = new ArrayList<>();
+        
+        g.E().hasLabel("SupplyRoute")
+            .has("isActive", true)
+            .forEachRemaining(edge -> {
+                Vertex sourceVertex = edge.outVertex();
+                Vertex targetVertex = edge.inVertex();
+                String sourceDepotId = (String) sourceVertex.property("depotId").value();
+                String targetDepotId = (String) targetVertex.property("depotId").value();
+                
+                Map<String, Object> routeInfo = new HashMap<>();
+                routeInfo.put("sourceDepotId", sourceDepotId);
+                routeInfo.put("targetDepotId", targetDepotId);
+                routeInfo.put("distance", edge.property("distance").value());
+                routeInfo.put("riskFactor", edge.property("riskFactor").value());
+                
+                result.add(routeInfo);
+            });
+        
+        return result;
+    }
+    
+    /**
+     * Finds all supply depots located in a specific region
+     */
+    public List<Map<String, Object>> findDepotsInRegion(String regionId) {
+        // Get all depots
+        List<Map<Object, Object>> allDepots = g.V()
+                .hasLabel("SupplyDepot")
+                .valueMap("depotId", "name", "latitude", "longitude", "capacity")
+                .toList();
+        
+        // Convert to standard map
+        List<Map<String, Object>> convertedDepots = allDepots.stream()
+                .map(m -> {
+                    Map<String, Object> convertedMap = new HashMap<>();
+                    m.forEach((k, v) -> convertedMap.put(k.toString(), v));
+                    return convertedMap;
+                })
+                .collect(Collectors.toList());
+        
+        // Filter depots that are in the given region
+        return convertedDepots.stream()
+                .filter(depot -> {
+                    double latitude = getDoubleValue(depot.get("latitude"));
+                    double longitude = getDoubleValue(depot.get("longitude"));
+                    return geospatialService.isPointInRegion(regionId, latitude, longitude);
+                })
+                .collect(Collectors.toList());
+    }
+    
+    private double getDoubleValue(Object obj) {
+        if (obj instanceof Number) {
+            return ((Number) obj).doubleValue();
+        } else if (obj instanceof List && !((List<?>) obj).isEmpty() && ((List<?>) obj).get(0) instanceof Number) {
+            return ((Number) ((List<?>) obj).get(0)).doubleValue();
+        }
+        return 0.0;
+    }
+
+    /**
+     * Finds all supply depots in the system
+     */
+    public List<Map<String, Object>> findAllDepots() {
+        List<Map<String, Object>> result = new ArrayList<>();
+        
+        g.V().hasLabel("SupplyDepot")
+            .forEachRemaining(vertex -> {
+                Map<String, Object> depotInfo = new HashMap<>();
+                depotInfo.put("depotId", vertex.property("depotId").value());
+                depotInfo.put("name", vertex.property("name").value());
+                depotInfo.put("latitude", vertex.property("latitude").value());
+                depotInfo.put("longitude", vertex.property("longitude").value());
+                depotInfo.put("capacity", vertex.property("capacity").value());
+                depotInfo.put("currentStock", vertex.property("currentStock").value());
+                
+                result.add(depotInfo);
+            });
+        
+        return result;
     }
 } 

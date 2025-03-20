@@ -7,6 +7,8 @@ import itmo.rshd.model.User;
 import itmo.rshd.repository.RegionRepository;
 import itmo.rshd.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.mongodb.core.geo.GeoJsonPoint;
+import org.springframework.data.mongodb.core.geo.GeoJsonPolygon;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -17,13 +19,16 @@ public class RegionService {
 
     private final RegionRepository regionRepository;
     private final UserRepository userRepository;
-    private final RegionAssessmentService regionAssessmentService;
+    private RegionAssessmentService regionAssessmentService;
 
     @Autowired
-    public RegionService(RegionRepository regionRepository, UserRepository userRepository,
-            RegionAssessmentService regionAssessmentService) {
+    public RegionService(RegionRepository regionRepository, UserRepository userRepository) {
         this.regionRepository = regionRepository;
         this.userRepository = userRepository;
+    }
+    
+    @Autowired
+    public void setRegionAssessmentService(RegionAssessmentService regionAssessmentService) {
         this.regionAssessmentService = regionAssessmentService;
     }
 
