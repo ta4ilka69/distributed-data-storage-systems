@@ -32,7 +32,12 @@ public class RegionAssessmentService {
         }
 
         // Check if region has low average rating and no important persons
-        return region.getAverageSocialRating() < 35
+        // If population is zero, don't deploy (can't divide by zero)
+        if (region.getPopulationCount() <= 0) {
+            return false;
+        }
+        
+        return region.getAverageSocialRating() < 39
                 && region.getImportantPersonsCount() / region.getPopulationCount() < 0.02;
     }
 
@@ -193,27 +198,55 @@ public class RegionAssessmentService {
             Region parent = parentOpt.get();
             System.out.println("Updating parent region: " + parent.getName());
             
-            // Get all sub-regions of this parent
-            List<Region> subRegions = regionRepository.findByParentRegionId(parentRegionId);
-            System.out.println("Found " + subRegions.size() + " subregions for " + parent.getName());
-            
-            if (subRegions.isEmpty()) {
-                return; // No subregions to recalculate from
-            }
-            
-            // Calculate new statistics based on all sub-regions
+            // Initialize counters
             int totalPopulation = 0;
             double totalRatingSum = 0;
             int totalImportantPersons = 0;
-            int activeRegionsCount = 0;
             
-            for (Region subRegion : subRegions) {
-                if (subRegion.getPopulationCount() > 0) {
-                    totalPopulation += subRegion.getPopulationCount();
-                    totalRatingSum += subRegion.getAverageSocialRating() * subRegion.getPopulationCount();
-                    totalImportantPersons += subRegion.getImportantPersonsCount();
-                    activeRegionsCount++;
-                }
+            // Different counting strategy based on region type
+            if (parent.getType() == Region.RegionType.COUNTRY) {
+                // For country, count all active users
+                List<User> allUsers = userRepository.findByActive(true);
+                totalPopulation = allUsers.size();
+                totalRatingSum = allUsers.stream()
+                    .mapToDouble(User::getSocialRating)
+                    .sum();
+                totalImportantPersons = (int) allUsers.stream()
+                    .filter(u -> u.getStatus() == User.SocialStatus.IMPORTANT || u.getStatus() == User.SocialStatus.VIP)
+                    .count();
+            } 
+            else if (parent.getType() == Region.RegionType.REGION) {
+                // For regions, count users in this region and all its cities and districts
+                List<User> regionUsers = userRepository.findByRegionId(parentRegionId);
+                totalPopulation = regionUsers.size();
+                totalRatingSum = regionUsers.stream()
+                    .mapToDouble(User::getSocialRating)
+                    .sum();
+                totalImportantPersons = (int) regionUsers.stream()
+                    .filter(u -> u.getStatus() == User.SocialStatus.IMPORTANT || u.getStatus() == User.SocialStatus.VIP)
+                    .count();
+            }
+            else if (parent.getType() == Region.RegionType.CITY) {
+                // For cities, count users in this city and all its districts
+                List<User> cityUsers = userRepository.findByRegionId(parentRegionId);
+                totalPopulation = cityUsers.size();
+                totalRatingSum = cityUsers.stream()
+                    .mapToDouble(User::getSocialRating)
+                    .sum();
+                totalImportantPersons = (int) cityUsers.stream()
+                    .filter(u -> u.getStatus() == User.SocialStatus.IMPORTANT || u.getStatus() == User.SocialStatus.VIP)
+                    .count();
+            }
+            else if (parent.getType() == Region.RegionType.DISTRICT) {
+                // For districts, just count direct users
+                List<User> districtUsers = userRepository.findByDistrictId(parentRegionId);
+                totalPopulation = districtUsers.size();
+                totalRatingSum = districtUsers.stream()
+                    .mapToDouble(User::getSocialRating)
+                    .sum();
+                totalImportantPersons = (int) districtUsers.stream()
+                    .filter(u -> u.getStatus() == User.SocialStatus.IMPORTANT || u.getStatus() == User.SocialStatus.VIP)
+                    .count();
             }
             
             // Update parent region statistics
@@ -228,10 +261,6 @@ public class RegionAssessmentService {
                 parent.setAverageSocialRating(totalRatingSum / totalPopulation);
             } else {
                 parent.setAverageSocialRating(0);
-                // If all subregions are eliminated, mark this region as eliminated too
-                if (activeRegionsCount == 0) {
-                    parent.setUnderThreat(false);
-                }
             }
             
             parent.setImportantPersonsCount(totalImportantPersons);
@@ -240,6 +269,8 @@ public class RegionAssessmentService {
             if (totalPopulation > 0) {
                 boolean underThreat = shouldDeployOreshnik(parent.getId());
                 parent.setUnderThreat(underThreat);
+            } else {
+                parent.setUnderThreat(false);
             }
             
             System.out.println("After update - Region: " + parent.getName() + 

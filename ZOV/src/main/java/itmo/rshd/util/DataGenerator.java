@@ -126,7 +126,7 @@ public class DataGenerator implements CommandLineRunner {
             region.setName(regionNames[i]);
             region.setType(Region.RegionType.REGION);
             region.setParentRegionId(country.getId());
-            
+
             // Create more varied regional ratings
             double socialRating;
             if (i % 3 == 0) {
@@ -142,7 +142,7 @@ public class DataGenerator implements CommandLineRunner {
                 socialRating = ThreadLocalRandom.current().nextDouble(75, 90);
                 region.setUnderThreat(false);
             }
-            
+
             region.setAverageSocialRating(socialRating);
             region.setPopulationCount(0);
             region.setImportantPersonsCount(0);
@@ -167,12 +167,12 @@ public class DataGenerator implements CommandLineRunner {
 
             for (int i = 0; i < cityCount; i++) {
                 Region city = new Region();
-                
+
                 // Balance city types: 20% bad, 60% normal, 20% good
                 double cityType = ThreadLocalRandom.current().nextDouble();
                 double socialRating;
                 String namePrefix = "";
-                
+
                 if (cityType < 0.2) {
                     // "Bad" city - lower social rating
                     socialRating = ThreadLocalRandom.current().nextDouble(30, 45);
@@ -185,20 +185,20 @@ public class DataGenerator implements CommandLineRunner {
                     socialRating = ThreadLocalRandom.current().nextDouble(75, 90);
                     namePrefix = "Процветающий ";
                 }
-                
+
                 city.setName(namePrefix + faker.address().city());
                 city.setType(Region.RegionType.CITY);
                 city.setParentRegionId(federalRegion.getId());
                 city.setAverageSocialRating(socialRating);
                 city.setPopulationCount(0);
                 city.setImportantPersonsCount(0);
-                
+
                 // Some cities with very low ratings are under threat
-                city.setUnderThreat(socialRating < 35);
+                city.setUnderThreat(socialRating < 39);
 
                 // Get a random point within the federal region's boundaries
                 GeoLocation center = getRandomPointInBoundaries(federalRegion.getBoundaries());
-                
+
                 // Create city boundaries (smaller than federal regions)
                 double size = 0.2;
                 GeoJsonPolygon boundaries = createBoundaries(center.getLatitude(), center.getLongitude(), size);
@@ -221,12 +221,12 @@ public class DataGenerator implements CommandLineRunner {
 
             for (int i = 0; i < districtCount; i++) {
                 Region district = new Region();
-                
+
                 // Balance district types: 30% bad, 50% normal, 20% good
                 double districtType = ThreadLocalRandom.current().nextDouble();
                 double socialRating;
                 String namePrefix;
-                
+
                 if (districtType < 0.3) {
                     // "Bad" district - low social rating, eligible for missile
                     socialRating = ThreadLocalRandom.current().nextDouble(20, 32);
@@ -243,7 +243,7 @@ public class DataGenerator implements CommandLineRunner {
                     namePrefix = "Образцовый ";
                     district.setUnderThreat(false);
                 }
-                
+
                 district.setName(namePrefix + faker.address().streetName() + " District");
                 district.setType(Region.RegionType.DISTRICT);
                 district.setParentRegionId(city.getId());
@@ -279,7 +279,7 @@ public class DataGenerator implements CommandLineRunner {
     private void createUsers(List<Region> districts, List<Region> cities, List<Region> federalRegions, Region country) {
         // Status distribution based on district type
         User.SocialStatus[] statusOptions = User.SocialStatus.values();
-        
+
         List<User> users = new ArrayList<>();
 
         // Create country president
@@ -315,12 +315,12 @@ public class DataGenerator implements CommandLineRunner {
             // Determine status and social rating based on district rating
             User.SocialStatus status;
             double minRating, maxRating;
-            
+
             // Distribute social statuses based on district's social rating
             double districtRating = district.getAverageSocialRating();
             double random = ThreadLocalRandom.current().nextDouble();
-            
-            if (districtRating < 35) {
+
+            if (districtRating < 39) {
                 // Low-rated district: 60% LOW, 40% REGULAR, 0% IMPORTANT, 0% VIP
                 if (random < 0.6) {
                     status = User.SocialStatus.LOW;
@@ -430,6 +430,8 @@ public class DataGenerator implements CommandLineRunner {
 
         // Set city if provided
         if (city != null) {
+            // For city officials, set the regionId to the cityId to properly associate them
+            user.setRegionId(city.getId());
             user.setDistrictId("none"); // City official
 
             // Location in the city center

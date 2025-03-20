@@ -16,6 +16,9 @@ public interface UserRepository extends MongoRepository<User, String> {
     @Query("{'regionId': ?0, 'active': true}")
     List<User> findByRegionId(String regionId);
     
+    @Query("{'$or': [{'regionId': ?0, 'districtId': 'none'}, {'districtId': {$in: ?1}}], 'active': true}")
+    List<User> findByCityIdIncludingDistricts(String cityId, List<String> districtIds);
+    
     @Query("{'districtId': ?0, 'active': true}")
     List<User> findByDistrictId(String districtId);
     
