@@ -60,10 +60,10 @@ public class UserController {
         if (existingUser.isPresent()) {
             user.setId(id);
             User updatedUser = userService.updateUser(user);
-            
+
             // Notify all subscribers about the update
             webSocketService.notifyUserLocationUpdate(updatedUser);
-            
+
             return new ResponseEntity<>(updatedUser, HttpStatus.OK);
         } else {
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
@@ -89,29 +89,28 @@ public class UserController {
             @RequestParam String regionId,
             @RequestParam String districtId,
             @RequestParam String countryId) {
-        
+
         GeoLocation location = new GeoLocation(latitude, longitude);
         User updatedUser = userService.updateUserLocation(id, location, regionId, districtId, countryId);
-        
+
         if (updatedUser != null) {
             // Notify via WebSocket about user location change
             webSocketService.notifyUserLocationUpdate(updatedUser);
-            
+
             // Find nearby users and notify this user
             List<User> nearbyUsers = userService.findUsersNearLocation(location, 5.0);
             webSocketService.notifyNearbyUsersUpdate(id, nearbyUsers);
-            
+
             // Also notify nearby users about this user
             for (User nearbyUser : nearbyUsers) {
                 if (!nearbyUser.getId().equals(id)) {
                     List<User> usersNearOtherUser = userService.findUsersNearLocation(
-                            nearbyUser.getCurrentLocation(), 
-                            5.0
-                    );
+                            nearbyUser.getCurrentLocation(),
+                            5.0);
                     webSocketService.notifyNearbyUsersUpdate(nearbyUser.getId(), usersNearOtherUser);
                 }
             }
-            
+
             return new ResponseEntity<>(updatedUser, HttpStatus.OK);
         } else {
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
@@ -123,19 +122,19 @@ public class UserController {
             @PathVariable String id,
             @RequestParam double rating,
             @RequestParam(required = false) String raterId) {
-        
+
         User updatedUser = userService.updateSocialRating(id, rating);
-        
+
         // If this rating was given by another user, update their rating too
         if (raterId != null && !raterId.isEmpty()) {
             userService.updateRaterSocialRating(raterId, id, rating > 0 ? 1.0 : -1.0);
         }
-        
+
         if (updatedUser != null) {
             // Notify via WebSocket about user rating change
             webSocketService.notifyUserLocationUpdate(updatedUser);
             webSocketService.notifySocialRatingChange(id, updatedUser);
-            
+
             return new ResponseEntity<>(updatedUser, HttpStatus.OK);
         } else {
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
@@ -159,7 +158,7 @@ public class UserController {
             @RequestParam double latitude,
             @RequestParam double longitude,
             @RequestParam double maxDistanceKm) {
-        
+
         GeoLocation location = new GeoLocation(latitude, longitude);
         List<User> users = userService.findUsersNearLocation(location, maxDistanceKm);
         return new ResponseEntity<>(users, HttpStatus.OK);
@@ -171,18 +170,19 @@ public class UserController {
         return new ResponseEntity<>(users, HttpStatus.OK);
     }
 
+    @SuppressWarnings("unused")
     @GetMapping("/test-users")
     public ResponseEntity<List<Object>> getTestUserCredentials() {
         List<User> users = userService.getAllUsers();
         List<Object> credentials = users.stream()
-            .map(user -> new Object() {
-                public final String username = user.getUsername();
-                public final String password = user.getPassword();
-                public final String fullName = user.getFullName();
-                public final User.SocialStatus status = user.getStatus();
-            })
-            .limit(20) // Limit to first 20 users
-            .collect(java.util.stream.Collectors.toList());
+                .map(user -> new Object() {
+                    public final String username = user.getUsername();
+                    public final String password = user.getPassword();
+                    public final String fullName = user.getFullName();
+                    public final User.SocialStatus status = user.getStatus();
+                })
+                .limit(20) // Limit to first 20 users
+                .collect(java.util.stream.Collectors.toList());
         return new ResponseEntity<>(credentials, HttpStatus.OK);
     }
 }
