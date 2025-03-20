@@ -42,6 +42,9 @@ const RegionMap: React.FC<RegionMapProps> = ({
   targetRegionId,
   onSelectRegion 
 }) => {
+  console.log('RegionMap received regions:', regions);
+  console.log('Target region ID:', targetRegionId);
+  
   const defaultCenter: [number, number] = [55.7558, 37.6173]; // Moscow coordinates as default
   const [center, setCenter] = useState<[number, number]>(defaultCenter);
 
@@ -93,58 +96,65 @@ const RegionMap: React.FC<RegionMapProps> = ({
       
       <MapCenter center={center} />
       
-      {regions.map(region => (
-        <React.Fragment key={region.id}>
-          {region.boundaries && region.boundaries.length > 2 && (
-            <Polygon 
-              positions={region.boundaries.map(loc => [loc.latitude, loc.longitude])}
-              pathOptions={{ 
-                color: getRegionColor(region),
-                fillColor: getRegionColor(region),
-                fillOpacity: getRegionFillOpacity(region)
-              }}
-              eventHandlers={{
-                click: () => handleRegionClick(region)
-              }}
-            >
-              <Popup>
-                <div className="p-2">
-                  <h3 className="font-bold">{region.name}</h3>
-                  <p className="text-sm">Type: {region.type}</p>
-                  <p className="text-sm">Population: {region.populationCount.toLocaleString()}</p>
-                  <p className="text-sm">Avg Social Rating: {region.averageSocialRating.toFixed(1)}</p>
-                  <p className="text-sm">Important Persons: {region.importantPersonsCount}</p>
-                  
-                  {region.underThreat && (
-                    <div className="mt-2 bg-red-100 p-2 rounded-md flex items-center">
-                      <ExclamationTriangleIcon className="h-5 w-5 text-red-600 mr-1" />
-                      <span className="text-red-700 text-sm font-medium">Under Threat</span>
+      {regions && regions.length > 0 ? (
+        regions.map(region => {
+          console.log('Processing region:', region.name, 'Boundaries:', region.boundaries);
+          return (
+            <React.Fragment key={region.id}>
+              {region.boundaries && region.boundaries.length > 2 && (
+                <Polygon 
+                  positions={region.boundaries.map(loc => [loc.latitude, loc.longitude])}
+                  pathOptions={{ 
+                    color: getRegionColor(region),
+                    fillColor: getRegionColor(region),
+                    fillOpacity: getRegionFillOpacity(region)
+                  }}
+                  eventHandlers={{
+                    click: () => handleRegionClick(region)
+                  }}
+                >
+                  <Popup>
+                    <div className="p-2">
+                      <h3 className="font-bold">{region.name}</h3>
+                      <p className="text-sm">Type: {region.type}</p>
+                      <p className="text-sm">Population: {region.populationCount.toLocaleString()}</p>
+                      <p className="text-sm">Avg Social Rating: {region.averageSocialRating.toFixed(1)}</p>
+                      <p className="text-sm">Important Persons: {region.importantPersonsCount}</p>
+                      
+                      {region.underThreat && (
+                        <div className="mt-2 bg-red-100 p-2 rounded-md flex items-center">
+                          <ExclamationTriangleIcon className="h-5 w-5 text-red-600 mr-1" />
+                          <span className="text-red-700 text-sm font-medium">Under Threat</span>
+                        </div>
+                      )}
                     </div>
-                  )}
-                </div>
-              </Popup>
-            </Polygon>
-          )}
+                  </Popup>
+                </Polygon>
+              )}
 
-          {region.id === targetRegionId && (
-            <Marker 
-              position={[
-                // Use the center of the region (average of all boundary points)
-                region.boundaries.reduce((sum, point) => sum + point.latitude, 0) / region.boundaries.length,
-                region.boundaries.reduce((sum, point) => sum + point.longitude, 0) / region.boundaries.length
-              ]}
-              icon={missileIcon}
-            >
-              <Popup>
-                <div className="p-2 text-center">
-                  <p className="font-bold text-red-600">ORESHNIK MISSILE TARGET</p>
-                  <p className="text-sm">Region: {region.name}</p>
-                </div>
-              </Popup>
-            </Marker>
-          )}
-        </React.Fragment>
-      ))}
+              {region.id === targetRegionId && (
+                <Marker 
+                  position={[
+                    // Use the center of the region (average of all boundary points)
+                    region.boundaries.reduce((sum, point) => sum + point.latitude, 0) / region.boundaries.length,
+                    region.boundaries.reduce((sum, point) => sum + point.longitude, 0) / region.boundaries.length
+                  ]}
+                  icon={missileIcon}
+                >
+                  <Popup>
+                    <div className="p-2 text-center">
+                      <p className="font-bold text-red-600">ORESHNIK MISSILE TARGET</p>
+                      <p className="text-sm">Region: {region.name}</p>
+                    </div>
+                  </Popup>
+                </Marker>
+              )}
+            </React.Fragment>
+          );
+        })
+      ) : (
+        <div>No regions found</div>
+      )}
       
       {currentLocation && (
         <Marker position={[currentLocation.latitude, currentLocation.longitude]}>
