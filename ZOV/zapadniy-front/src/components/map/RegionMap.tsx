@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, Polygon, useMap } from 'react-leaflet';
-import { Region, RegionType, GeoLocation } from '../../types';
+import { Region , GeoLocation } from '../../types';
 import { ExclamationTriangleIcon } from '@heroicons/react/24/solid';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
@@ -54,6 +54,19 @@ const RegionMap: React.FC<RegionMapProps> = ({
     }
   }, [currentLocation]);
 
+  // Add effect to update center when a region is targeted
+  useEffect(() => {
+    if (targetRegionId && regions) {
+      const targetRegion = regions.find(r => r.id === targetRegionId);
+      if (targetRegion && targetRegion.boundaries && targetRegion.boundaries.length > 0) {
+        // Calculate center of the region as average of boundary points
+        const lat = targetRegion.boundaries.reduce((sum, point) => sum + point.latitude, 0) / targetRegion.boundaries.length;
+        const lng = targetRegion.boundaries.reduce((sum, point) => sum + point.longitude, 0) / targetRegion.boundaries.length;
+        setCenter([lat, lng]);
+      }
+    }
+  }, [targetRegionId, regions]);
+
   const getRegionColor = (region: Region): string => {
     if (region.id === targetRegionId) {
       return '#ff0000'; // Target region (red)
@@ -99,38 +112,41 @@ const RegionMap: React.FC<RegionMapProps> = ({
       {regions && regions.length > 0 ? (
         regions.map(region => {
           console.log('Processing region:', region.name, 'Boundaries:', region.boundaries);
+          if (!Array.isArray(region.boundaries) || region.boundaries.length < 3) {
+            console.warn(`Region ${region.name} has invalid boundaries:`, region.boundaries);
+            return null;
+          }
+
           return (
-            <React.Fragment key={region.id}>
-              {region.boundaries && region.boundaries.length > 2 && (
-                <Polygon 
-                  positions={region.boundaries.map(loc => [loc.latitude, loc.longitude])}
-                  pathOptions={{ 
-                    color: getRegionColor(region),
-                    fillColor: getRegionColor(region),
-                    fillOpacity: getRegionFillOpacity(region)
-                  }}
-                  eventHandlers={{
-                    click: () => handleRegionClick(region)
-                  }}
-                >
-                  <Popup>
-                    <div className="p-2">
-                      <h3 className="font-bold">{region.name}</h3>
-                      <p className="text-sm">Type: {region.type}</p>
-                      <p className="text-sm">Population: {region.populationCount.toLocaleString()}</p>
-                      <p className="text-sm">Avg Social Rating: {region.averageSocialRating.toFixed(1)}</p>
-                      <p className="text-sm">Important Persons: {region.importantPersonsCount}</p>
-                      
-                      {region.underThreat && (
-                        <div className="mt-2 bg-red-100 p-2 rounded-md flex items-center">
-                          <ExclamationTriangleIcon className="h-5 w-5 text-red-600 mr-1" />
-                          <span className="text-red-700 text-sm font-medium">Under Threat</span>
-                        </div>
-                      )}
-                    </div>
-                  </Popup>
-                </Polygon>
-              )}
+            <React.Fragment key={region.id || Math.random().toString()}>
+              <Polygon 
+                positions={region.boundaries.map(loc => [loc.latitude, loc.longitude])}
+                pathOptions={{ 
+                  color: getRegionColor(region),
+                  fillColor: getRegionColor(region),
+                  fillOpacity: getRegionFillOpacity(region)
+                }}
+                eventHandlers={{
+                  click: () => handleRegionClick(region)
+                }}
+              >
+                <Popup>
+                  <div className="p-2">
+                    <h3 className="font-bold">{region.name}</h3>
+                    <p className="text-sm">Type: {region.type}</p>
+                    <p className="text-sm">Population: {region.populationCount.toLocaleString()}</p>
+                    <p className="text-sm">Avg Social Rating: {region.averageSocialRating.toFixed(1)}</p>
+                    <p className="text-sm">Important Persons: {region.importantPersonsCount}</p>
+                    
+                    {region.underThreat && (
+                      <div className="mt-2 bg-red-100 p-2 rounded-md flex items-center">
+                        <ExclamationTriangleIcon className="h-5 w-5 text-red-600 mr-1" />
+                        <span className="text-red-700 text-sm font-medium">Under Threat</span>
+                      </div>
+                    )}
+                  </div>
+                </Popup>
+              </Polygon>
 
               {region.id === targetRegionId && (
                 <Marker 
@@ -153,7 +169,16 @@ const RegionMap: React.FC<RegionMapProps> = ({
           );
         })
       ) : (
-        <div>No regions found</div>
+        <div style={{
+          position: 'absolute',
+          top: '50%',
+          left: '50%',
+          transform: 'translate(-50%, -50%)',
+          background: 'white',
+          padding: '10px',
+          borderRadius: '5px',
+          zIndex: 1000
+        }}>No regions found</div>
       )}
       
       {currentLocation && (

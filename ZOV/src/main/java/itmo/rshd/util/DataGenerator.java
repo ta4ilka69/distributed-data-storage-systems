@@ -82,12 +82,13 @@ public class DataGenerator implements CommandLineRunner {
         russia.setUnderThreat(false);
         
         // Create GeoJsonPolygon for Russia's boundaries
+        // Note: GeoJSON uses [longitude, latitude] order
         List<Point> polygonPoints = Arrays.asList(
-            new Point(30.0, 59.0),
-            new Point(180.0, 59.0),
-            new Point(180.0, 44.0),
-            new Point(30.0, 44.0),
-            new Point(30.0, 59.0) // Closing the polygon
+            new Point(30.0, 60.0),  // Northwest
+            new Point(180.0, 60.0), // Northeast
+            new Point(180.0, 45.0), // Southeast
+            new Point(30.0, 45.0),  // Southwest
+            new Point(30.0, 60.0)   // Close the polygon by repeating first point
         );
         
         russia.setBoundaries(new GeoJsonPolygon(polygonPoints));

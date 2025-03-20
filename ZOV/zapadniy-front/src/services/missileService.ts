@@ -50,9 +50,13 @@ export const missileService = {
   },
   
   launchMissileAtRegion: async (regionId: string, missileType: MissileType): Promise<void> => {
-    await api.post('/government/launch-missile', {
-      regionId,
-      missileType
-    });
+    console.log(`Launching ${missileType} missile at region ${regionId}`);
+    try {
+      // Use the correct endpoint as defined in GovernmentController
+      await api.post(`/government/deploy-oreshnik/${regionId}`);
+    } catch (error) {
+      console.error('Error launching missile:', error);
+      throw error;
+    }
   }
 }; 
