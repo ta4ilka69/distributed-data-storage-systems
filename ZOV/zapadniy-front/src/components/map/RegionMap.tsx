@@ -4,6 +4,7 @@ import { Region , GeoLocation } from '../../types';
 import { ExclamationTriangleIcon } from '@heroicons/react/24/solid';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
+import { regionService } from '../../services/regionService';
 
 // Fix the marker icon issue in Leaflet with React
 delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -59,13 +60,23 @@ const RegionMap: React.FC<RegionMapProps> = ({
     if (targetRegionId && regions) {
       const targetRegion = regions.find(r => r.id === targetRegionId);
       if (targetRegion && targetRegion.boundaries && targetRegion.boundaries.length > 0) {
-        // Calculate center of the region as average of boundary points
         const lat = targetRegion.boundaries.reduce((sum, point) => sum + point.latitude, 0) / targetRegion.boundaries.length;
         const lng = targetRegion.boundaries.reduce((sum, point) => sum + point.longitude, 0) / targetRegion.boundaries.length;
         setCenter([lat, lng]);
       }
     }
   }, [targetRegionId, regions]);
+
+  // Fetch and display subregions
+  useEffect(() => {
+    const fetchSubRegions = async () => {
+      const subRegions = await regionService.getSubRegions(targetRegionId || '');
+      setSubRegions(subRegions);
+    };
+    fetchSubRegions();
+  }, [targetRegionId]);
+
+  const [subRegions, setSubRegions] = useState<Region[]>([]);
 
   const getRegionColor = (region: Region): string => {
     if (region.id === targetRegionId) {
@@ -193,6 +204,31 @@ const RegionMap: React.FC<RegionMapProps> = ({
           </Popup>
         </Marker>
       )}
+
+      {subRegions.map(subRegion => (
+        <Polygon 
+          key={subRegion.id}
+          positions={subRegion.boundaries.map(loc => [loc.latitude, loc.longitude])}
+          pathOptions={{ 
+            color: getRegionColor(subRegion),
+            fillColor: getRegionColor(subRegion),
+            fillOpacity: getRegionFillOpacity(subRegion)
+          }}
+          eventHandlers={{
+            click: () => handleRegionClick(subRegion)
+          }}
+        >
+          <Popup>
+            <div className="p-2">
+              <h3 className="font-bold">{subRegion.name}</h3>
+              <p className="text-sm">Type: {subRegion.type}</p>
+              <p className="text-sm">Population: {subRegion.populationCount.toLocaleString()}</p>
+              <p className="text-sm">Avg Social Rating: {subRegion.averageSocialRating.toFixed(1)}</p>
+              <p className="text-sm">Important Persons: {subRegion.importantPersonsCount}</p>
+            </div>
+          </Popup>
+        </Polygon>
+      ))}
     </MapContainer>
   );
 };
