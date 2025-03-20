@@ -75,12 +75,15 @@ public class MissileSupplyChainGenerator implements CommandLineRunner {
         for (Vertex hub1 : hubs.values()) {
             for (Vertex hub2 : hubs.values()) {
                 if (hub1 != hub2) {
-                    g.addE("supplyRoute")
+                    g.addE("SupplyRoute")
                         .from(hub1)
                         .to(hub2)
                         .property("capacity", 1000 + random.nextInt(500))
                         .property("securityLevel", "HIGH")
                         .property("transportType", "ARMORED_CONVOY")
+                        .property("distance", random.nextDouble() * 1000 + 200)
+                        .property("riskFactor", random.nextDouble() * 0.5)
+                        .property("isActive", true)
                         .next();
                 }
             }
@@ -111,12 +114,15 @@ public class MissileSupplyChainGenerator implements CommandLineRunner {
             // Connect to regional hub
             Vertex parentHub = regionalHubs.get(city.getParentRegionId());
             if (parentHub != null) {
-                g.addE("supplyRoute")
+                g.addE("SupplyRoute")
                     .from(parentHub)
                     .to(depot)
                     .property("capacity", 500 + random.nextInt(200))
                     .property("securityLevel", "MEDIUM")
                     .property("transportType", "SECURE_TRUCK")
+                    .property("distance", random.nextDouble() * 300 + 50)
+                    .property("riskFactor", random.nextDouble() * 0.3 + 0.1)
+                    .property("isActive", true)
                     .next();
             }
         }
@@ -143,12 +149,15 @@ public class MissileSupplyChainGenerator implements CommandLineRunner {
                 // Connect to city depot
                 Vertex cityDepot = cityDepots.get(district.getParentRegionId());
                 if (cityDepot != null) {
-                    g.addE("supplyRoute")
+                    g.addE("SupplyRoute")
                         .from(cityDepot)
                         .to(point)
                         .property("capacity", 100 + random.nextInt(50))
                         .property("securityLevel", "STANDARD")
                         .property("transportType", "LIGHT_VEHICLE")
+                        .property("distance", random.nextDouble() * 50 + 5)
+                        .property("riskFactor", random.nextDouble() * 0.2 + 0.2)
+                        .property("isActive", true)
                         .next();
                 }
             }

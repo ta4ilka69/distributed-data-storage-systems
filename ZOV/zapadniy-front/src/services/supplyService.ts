@@ -70,5 +70,10 @@ export const supplyService = {
     await api.post(`/missile-supply/depots/${depotId}/missiles`, null, { 
       params: { missileTypeId, quantity } 
     });
+  },
+  
+  // Admin operations
+  resetSupplyChain: async (): Promise<void> => {
+    await api.post('/missile-supply/admin/reset-supply-chain');
   }
 }; 

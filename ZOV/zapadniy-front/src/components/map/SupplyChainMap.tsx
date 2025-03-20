@@ -54,12 +54,18 @@ const SupplyChainMap: React.FC<SupplyChainMapProps> = ({
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [fetchedDepots, fetchedRoutes] = await Promise.all([
-          supplyService.getAllDepots(),
-          supplyService.getAllRoutes()
-        ]);
+        // First try to get depots
+        const fetchedDepots = await supplyService.getAllDepots();
         setDepots(fetchedDepots);
-        setRoutes(fetchedRoutes);
+        
+        // Then try to get routes separately
+        try {
+          const fetchedRoutes = await supplyService.getAllRoutes();
+          setRoutes(fetchedRoutes);
+        } catch (routeError) {
+          console.error('Error fetching routes:', routeError);
+          setRoutes([]);
+        }
       } catch (error) {
         console.error('Error fetching supply chain data:', error);
       }
@@ -183,7 +189,11 @@ const SupplyChainMap: React.FC<SupplyChainMapProps> = ({
 
   // Render all supply routes
   const renderSupplyRoutes = () => {
+    if (!routes || routes.length === 0) return null;
+    
     return routes.map(route => {
+      if (!route || !route.sourceDepotId || !route.targetDepotId) return null;
+      
       const sourceDepot = depots.find(d => d.depotId === route.sourceDepotId);
       const targetDepot = depots.find(d => d.depotId === route.targetDepotId);
       

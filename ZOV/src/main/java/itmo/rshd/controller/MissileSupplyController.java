@@ -156,4 +156,10 @@ public class MissileSupplyController {
         
         return new ResponseEntity<>(depots, HttpStatus.OK);
     }
+    
+    @PostMapping("/admin/reset-supply-chain")
+    public ResponseEntity<String> resetSupplyChain() {
+        missileSupplyGraphService.clearSupplyChain();
+        return new ResponseEntity<>("Supply chain has been reset. It will be regenerated on the next application restart.", HttpStatus.OK);
+    }
 } 

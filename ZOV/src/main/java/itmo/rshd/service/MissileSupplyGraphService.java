@@ -207,45 +207,72 @@ public class MissileSupplyGraphService {
         
         return edges.stream()
                 .map(edge -> {
-                    Vertex sourceVertex = edge.outVertex();
-                    Vertex targetVertex = edge.inVertex();
-                    
-                    String sourceDepotId = sourceVertex.value("depotId");
-                    String targetDepotId = targetVertex.value("depotId");
-                    double distance = edge.value("distance");
-                    double riskFactor = edge.value("riskFactor");
-                    boolean isActive = edge.value("isActive");
-                    
-                    Map<String, Object> routeMap = new HashMap<>();
-                    routeMap.put("sourceDepotId", sourceDepotId);
-                    routeMap.put("targetDepotId", targetDepotId);
-                    routeMap.put("distance", distance);
-                    routeMap.put("riskFactor", riskFactor);
-                    routeMap.put("isActive", isActive);
-                    
-                    if (edge.properties("transportType").hasNext()) {
-                        routeMap.put("transportType", edge.value("transportType"));
+                    try {
+                        Vertex sourceVertex = edge.outVertex();
+                        Vertex targetVertex = edge.inVertex();
+                        
+                        // Check if vertices have the required properties
+                        if (!sourceVertex.properties("depotId").hasNext() || 
+                            !targetVertex.properties("depotId").hasNext()) {
+                            return null;
+                        }
+                        
+                        String sourceDepotId = sourceVertex.value("depotId");
+                        String targetDepotId = targetVertex.value("depotId");
+                        double distance = edge.value("distance");
+                        double riskFactor = edge.value("riskFactor");
+                        boolean isActive = edge.value("isActive");
+                        
+                        Map<String, Object> routeMap = new HashMap<>();
+                        routeMap.put("sourceDepotId", sourceDepotId);
+                        routeMap.put("targetDepotId", targetDepotId);
+                        routeMap.put("distance", distance);
+                        routeMap.put("riskFactor", riskFactor);
+                        routeMap.put("isActive", isActive);
+                        
+                        if (edge.properties("transportType").hasNext()) {
+                            routeMap.put("transportType", edge.value("transportType"));
+                        }
+                        
+                        if (edge.properties("securityLevel").hasNext()) {
+                            routeMap.put("securityLevel", edge.value("securityLevel"));
+                        }
+                        
+                        if (edge.properties("capacity").hasNext()) {
+                            routeMap.put("capacity", edge.value("capacity"));
+                        }
+                        
+                        return routeMap;
+                    } catch (Exception e) {
+                        // Skip this edge if any errors occur
+                        return null;
                     }
-                    
-                    if (edge.properties("securityLevel").hasNext()) {
-                        routeMap.put("securityLevel", edge.value("securityLevel"));
-                    }
-                    
-                    if (edge.properties("capacity").hasNext()) {
-                        routeMap.put("capacity", edge.value("capacity"));
-                    }
-                    
-                    return routeMap;
                 })
+                .filter(routeMap -> routeMap != null)
                 .collect(Collectors.toList());
     }
     
     public Map<String, Object> updateRouteStatus(String sourceDepotId, String targetDepotId, boolean isActive) {
         try {
-            Vertex sourceDepot = g.V().has("SupplyDepot", "depotId", sourceDepotId).next();
-            Vertex targetDepot = g.V().has("SupplyDepot", "depotId", targetDepotId).next();
+            // Find vertices by depotId
+            List<Vertex> sourceVertices = g.V().has("SupplyDepot", "depotId", sourceDepotId).toList();
+            List<Vertex> targetVertices = g.V().has("SupplyDepot", "depotId", targetDepotId).toList();
             
-            Edge route = g.V(sourceDepot).outE("SupplyRoute").where(__.inV().is(targetDepot)).next();
+            if (sourceVertices.isEmpty() || targetVertices.isEmpty()) {
+                return null;
+            }
+            
+            Vertex sourceDepot = sourceVertices.get(0);
+            Vertex targetDepot = targetVertices.get(0);
+            
+            // Find the edge between them
+            List<Edge> edges = g.V(sourceDepot).outE("SupplyRoute").where(__.inV().is(targetDepot)).toList();
+            
+            if (edges.isEmpty()) {
+                return null;
+            }
+            
+            Edge route = edges.get(0);
             route.property("isActive", isActive);
             
             Map<String, Object> routeMap = new HashMap<>();
@@ -269,7 +296,24 @@ public class MissileSupplyGraphService {
             
             return routeMap;
         } catch (Exception e) {
+            e.printStackTrace();
             return null;
         }
     }
-} 
+    
+    /**
+     * Clears all supply chain data from the graph database
+     */
+    public void clearSupplyChain() {
+        // First clear all edges
+        g.E().hasLabel("SupplyRoute").drop().iterate();
+        g.E().hasLabel("supplyRoute").drop().iterate(); // Also clear the old label format
+        g.E().hasLabel("Supplies").drop().iterate();
+        
+        // Then clear all vertices
+        g.V().hasLabel("SupplyDepot").drop().iterate();
+        g.V().hasLabel("MissileType").drop().iterate();
+        
+        System.out.println("Supply chain data has been cleared successfully");
+    }
+}
