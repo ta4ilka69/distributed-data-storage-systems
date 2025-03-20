@@ -135,23 +135,29 @@ public class UserService {
             // Calculate impact based on the target's status
             switch (target.getStatus()) {
                 case VIP:
-                    // Rating a VIP has higher consequences
-                    raterImpact = ratingChange > 0 ? 5.0 : -10.0; // Rewarded for liking, punished more for disliking
+                    // Rating a VIP (like president, governors) has higher consequences
+                    raterImpact = ratingChange > 0 ? 5.0 : -10.0; // +5 for like, -10 for dislike
                     break;
                 case IMPORTANT:
-                    raterImpact = ratingChange > 0 ? 3.0 : -7.0;
+                    // Rating an important person (like mayors)
+                    raterImpact = ratingChange > 0 ? 3.0 : -7.0; // +3 for like, -7 for dislike
                     break;
                 case REGULAR:
-                    raterImpact = ratingChange > 0 ? 1.0 : -3.0;
+                    raterImpact = ratingChange > 0 ? 1.0 : -3.0; // +1 for like, -3 for dislike
                     break;
                 case LOW:
-                    // Rating someone with low status has lower impact, but still incentivizes kindness
-                    raterImpact = ratingChange > 0 ? 0.5 : -1.0;
+                    // Rating someone with low status has lower impact
+                    raterImpact = ratingChange > 0 ? 0.5 : -1.0; // +0.5 for like, -1 for dislike
                     break;
             }
             
+            // Calculate new rating by adding the impact to current rating
+            double newRating = rater.getSocialRating() + raterImpact;
+            
+            // Ensure rating stays within valid bounds (0-100)
+            newRating = Math.max(0, Math.min(100, newRating));
+            
             // Update rater's social rating
-            double newRating = Math.max(0, Math.min(100, rater.getSocialRating() + raterImpact));
             rater.setSocialRating(newRating);
             
             // Update status based on new rating
