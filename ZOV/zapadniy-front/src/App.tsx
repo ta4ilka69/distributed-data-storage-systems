@@ -1,14 +1,22 @@
 import { useState, useEffect } from 'react';
-import { Layout, UserProfile, NearbyUsersList, RegionMap, RegionDetails } from './components';
+import { Layout, UserProfile, NearbyUsersList, RegionMap, RegionDetails, LoginForm } from './components';
 import { useCurrentUser, useNearbyUsers, useRegions } from './hooks';
-import { Region, RegionType, SocialStatus } from './types';
+import { Region, RegionType, SocialStatus, User } from './types';
 import { socketService } from './services';
 
 function App() {
   const [currentTab, setCurrentTab] = useState('profile');
   const [selectedRegion, setSelectedRegion] = useState<Region | null>(null);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [loggedInUser, setLoggedInUser] = useState<User | null>(null);
   
-  const { currentUser, loading: userLoading, error: userError, updateLocation, setCurrentUser } = useCurrentUser();
+  const { 
+    currentUser, 
+    loading: userLoading, 
+    error: userError, 
+    updateLocation, 
+    setCurrentUser 
+  } = useCurrentUser(loggedInUser?.id);
   
   const { 
     nearbyUsers, 
@@ -119,6 +127,16 @@ function App() {
       setSelectedRegion(null);
     }
   };
+
+  const handleLogin = (user: User) => {
+    setLoggedInUser(user);
+    setCurrentUser(user);
+    setIsLoggedIn(true);
+  };
+
+  if (!isLoggedIn) {
+    return <LoginForm onLoginSuccess={handleLogin} />;
+  }
 
   return (
     <Layout 

@@ -2,6 +2,13 @@ import api from './api';
 import { User, GeoLocation } from '../types';
 
 export const userService = {
+  login: async (username: string, password: string): Promise<User> => {
+    const response = await api.post('/users/login', null, {
+      params: { username, password }
+    });
+    return response.data;
+  },
+
   getAllUsers: async (): Promise<User[]> => {
     const response = await api.get('/users');
     return response.data;

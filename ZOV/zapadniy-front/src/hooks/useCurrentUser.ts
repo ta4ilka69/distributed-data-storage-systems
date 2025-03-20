@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { User } from '../types';
+import { User, SocialStatus } from '../types';
 import { userService } from '../services';
 
 // Mock user for development
@@ -8,7 +8,7 @@ const MOCK_USER: User = {
   username: 'citizen123',
   fullName: 'Ivan Ivanov',
   socialRating: 75,
-  status: 'REGULAR',
+  status: SocialStatus.REGULAR,
   currentLocation: {
     latitude: 55.7558,
     longitude: 37.6173
@@ -20,7 +20,7 @@ const MOCK_USER: User = {
   lastLocationUpdateTimestamp: Date.now()
 };
 
-export function useCurrentUser() {
+export function useCurrentUser(userId?: string) {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -28,9 +28,14 @@ export function useCurrentUser() {
   useEffect(() => {
     const fetchCurrentUser = async () => {
       try {
-        // In a real app, this would get the logged-in user
-        // For now, just use the mock user
-        setCurrentUser(MOCK_USER);
+        if (userId) {
+          // If we have a userId, fetch the user from the API
+          const user = await userService.getUserById(userId);
+          setCurrentUser(user);
+        } else {
+          // For development/testing without login
+          setCurrentUser(MOCK_USER);
+        }
         setLoading(false);
       } catch (err) {
         setError('Failed to fetch current user');
@@ -39,7 +44,7 @@ export function useCurrentUser() {
     };
 
     fetchCurrentUser();
-  }, []);
+  }, [userId]);
 
   const updateLocation = async (latitude: number, longitude: number) => {
     if (!currentUser || !currentUser.id) return;
