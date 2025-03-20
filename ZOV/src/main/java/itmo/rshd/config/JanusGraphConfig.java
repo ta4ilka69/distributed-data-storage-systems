@@ -2,12 +2,16 @@ package itmo.rshd.config;
 
 import org.apache.tinkerpop.gremlin.driver.Cluster;
 import org.apache.tinkerpop.gremlin.driver.remote.DriverRemoteConnection;
+import org.apache.tinkerpop.gremlin.util.ser.GraphSONMessageSerializerV3;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSource;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 import jakarta.annotation.PreDestroy;
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Arrays;
 
 import static org.apache.tinkerpop.gremlin.process.traversal.AnonymousTraversalSource.traversal;
 
@@ -19,12 +23,18 @@ public class JanusGraphConfig {
 
     @Bean
     public GraphTraversalSource graphTraversalSource() {
+        // Configure the serializer to handle JanusGraph types
+        // Using GraphSON instead of GraphBinary for better compatibility
+        final GraphSONMessageSerializerV3 serializer = new GraphSONMessageSerializerV3();
+        Map<String, Object> config = new HashMap<>();
+        config.put("ioRegistries", Arrays.asList("org.janusgraph.graphdb.tinkerpop.JanusGraphIoRegistry"));
+        serializer.configure(config, null);
+
         // Create connection to the remote JanusGraph server
-        // Use Graphson serializer instead of the default binary serializer
-        // This avoids issues with JanusGraph custom types
         cluster = Cluster.build()
                 .addContactPoint("localhost")
                 .port(8182)
+                .serializer(serializer) // Use the configured serializer
                 .create();
         
         // Get traversal source
