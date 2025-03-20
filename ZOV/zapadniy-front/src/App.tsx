@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { Layout, UserProfile, NearbyUsersList, RegionMap, RegionDetails, LoginForm } from './components';
+import { SupplyChainMap } from './components/map'; 
 import { useCurrentUser, useNearbyUsers, useRegions } from './hooks';
-import { Region, RegionType, SocialStatus, User } from './types';
+import { Region, RegionType, SocialStatus, User, SupplyDepot } from './types';
 import { socketService } from './services';
 import { authService } from './services/authService';
 import { regionService } from './services/regionService';
@@ -9,6 +10,7 @@ import { regionService } from './services/regionService';
 function App() {
   const [currentTab, setCurrentTab] = useState('profile');
   const [selectedRegion, setSelectedRegion] = useState<Region | null>(null);
+  const [selectedDepotId, setSelectedDepotId] = useState<string | undefined>(undefined);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [loggedInUser, setLoggedInUser] = useState<User | null>(null);
   
@@ -187,6 +189,10 @@ function App() {
     socketService.disconnect();
   };
 
+  const handleSelectDepot = (depot: SupplyDepot) => {
+    setSelectedDepotId(depot.depotId);
+  };
+
   if (!isLoggedIn) {
     return <LoginForm onLoginSuccess={handleLogin} />;
   }
@@ -268,7 +274,43 @@ function App() {
         </div>
       )}
       
-      {((currentTab === 'worldmap' || currentTab === 'missiles') && !isGovernmentUser) && (
+      {currentTab === 'supply' && isGovernmentUser && (
+        <div className="bg-white rounded-lg shadow overflow-hidden">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-2 h-[600px]">
+              <SupplyChainMap 
+                selectedDepotId={selectedDepotId}
+                onSelectDepot={handleSelectDepot}
+              />
+            </div>
+            <div className="p-4">
+              <h2 className="text-xl font-bold text-gray-800 mb-4">Supply Chain Map</h2>
+              <p className="text-gray-700 mb-4">
+                This map shows missile supply depots and their connections.
+              </p>
+              
+              <div className="mt-4 border-t pt-4">
+                <h3 className="font-medium text-gray-700">How to use:</h3>
+                <ul className="mt-2 text-sm text-gray-600 list-disc pl-5 space-y-1">
+                  <li>Click on a depot to select it as the source</li>
+                  <li>Click on another depot to see the optimal supply route</li>
+                  <li>Click on any depot again to reset and start over</li>
+                </ul>
+              </div>
+              
+              <div className="mt-6 bg-blue-50 border border-blue-200 p-4 rounded-lg">
+                <p className="text-blue-700 font-medium">Supply Chain Information</p>
+                <p className="text-blue-600 text-sm mt-1">
+                  The system calculates optimal routes between depots based on distance and risk factors.
+                  Green dashed lines show the safest and most efficient routes.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {((currentTab === 'worldmap' || currentTab === 'missiles' || currentTab === 'supply') && !isGovernmentUser) && (
         <div className="bg-red-50 border border-red-200 p-6 rounded-lg">
           <h2 className="text-xl font-bold text-red-700 mb-2">Access Denied</h2>
           <p className="text-red-600">

@@ -67,4 +67,26 @@ export interface Missile {
   lastMaintenanceDate: string;
   supplyDepotId: string;
   currentLocation: GeoLocation;
+}
+
+export interface SupplyDepot {
+  depotId: string;
+  name: string;
+  latitude: number;
+  longitude: number;
+  capacity: number;
+  currentStock: number;
+  type?: string;
+  securityLevel?: string;
+}
+
+export interface SupplyRoute {
+  sourceDepotId: string;
+  targetDepotId: string;
+  distance: number;
+  riskFactor: number;
+  isActive: boolean;
+  transportType?: string;
+  securityLevel?: string;
+  capacity?: number;
 } 

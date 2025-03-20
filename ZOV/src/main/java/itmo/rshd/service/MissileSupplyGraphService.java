@@ -158,4 +158,118 @@ public class MissileSupplyGraphService {
                 })
                 .collect(Collectors.toList());
     }
+    
+    public List<Map<String, Object>> getAllDepots() {
+        List<Map<Object, Object>> results = g.V()
+                .hasLabel("SupplyDepot")
+                .valueMap("depotId", "name", "latitude", "longitude", "capacity", "currentStock", "type", "securityLevel")
+                .toList();
+        
+        return results.stream()
+                .map(m -> {
+                    Map<String, Object> convertedMap = new HashMap<>();
+                    m.forEach((k, v) -> {
+                        if (v instanceof List && ((List<?>) v).size() == 1) {
+                            convertedMap.put(k.toString(), ((List<?>) v).get(0));
+                        } else {
+                            convertedMap.put(k.toString(), v);
+                        }
+                    });
+                    return convertedMap;
+                })
+                .collect(Collectors.toList());
+    }
+    
+    public Map<String, Object> getDepotById(String depotId) {
+        try {
+            Map<Object, Object> result = g.V()
+                    .has("SupplyDepot", "depotId", depotId)
+                    .valueMap("depotId", "name", "latitude", "longitude", "capacity", "currentStock", "type", "securityLevel")
+                    .next();
+            
+            Map<String, Object> convertedMap = new HashMap<>();
+            result.forEach((k, v) -> {
+                if (v instanceof List && ((List<?>) v).size() == 1) {
+                    convertedMap.put(k.toString(), ((List<?>) v).get(0));
+                } else {
+                    convertedMap.put(k.toString(), v);
+                }
+            });
+            
+            return convertedMap;
+        } catch (Exception e) {
+            return null;
+        }
+    }
+    
+    public List<Map<String, Object>> getAllSupplyRoutes() {
+        List<Edge> edges = g.E().hasLabel("SupplyRoute").toList();
+        
+        return edges.stream()
+                .map(edge -> {
+                    Vertex sourceVertex = edge.outVertex();
+                    Vertex targetVertex = edge.inVertex();
+                    
+                    String sourceDepotId = sourceVertex.value("depotId");
+                    String targetDepotId = targetVertex.value("depotId");
+                    double distance = edge.value("distance");
+                    double riskFactor = edge.value("riskFactor");
+                    boolean isActive = edge.value("isActive");
+                    
+                    Map<String, Object> routeMap = new HashMap<>();
+                    routeMap.put("sourceDepotId", sourceDepotId);
+                    routeMap.put("targetDepotId", targetDepotId);
+                    routeMap.put("distance", distance);
+                    routeMap.put("riskFactor", riskFactor);
+                    routeMap.put("isActive", isActive);
+                    
+                    if (edge.properties("transportType").hasNext()) {
+                        routeMap.put("transportType", edge.value("transportType"));
+                    }
+                    
+                    if (edge.properties("securityLevel").hasNext()) {
+                        routeMap.put("securityLevel", edge.value("securityLevel"));
+                    }
+                    
+                    if (edge.properties("capacity").hasNext()) {
+                        routeMap.put("capacity", edge.value("capacity"));
+                    }
+                    
+                    return routeMap;
+                })
+                .collect(Collectors.toList());
+    }
+    
+    public Map<String, Object> updateRouteStatus(String sourceDepotId, String targetDepotId, boolean isActive) {
+        try {
+            Vertex sourceDepot = g.V().has("SupplyDepot", "depotId", sourceDepotId).next();
+            Vertex targetDepot = g.V().has("SupplyDepot", "depotId", targetDepotId).next();
+            
+            Edge route = g.V(sourceDepot).outE("SupplyRoute").where(__.inV().is(targetDepot)).next();
+            route.property("isActive", isActive);
+            
+            Map<String, Object> routeMap = new HashMap<>();
+            routeMap.put("sourceDepotId", sourceDepotId);
+            routeMap.put("targetDepotId", targetDepotId);
+            routeMap.put("distance", route.value("distance"));
+            routeMap.put("riskFactor", route.value("riskFactor"));
+            routeMap.put("isActive", isActive);
+            
+            if (route.properties("transportType").hasNext()) {
+                routeMap.put("transportType", route.value("transportType"));
+            }
+            
+            if (route.properties("securityLevel").hasNext()) {
+                routeMap.put("securityLevel", route.value("securityLevel"));
+            }
+            
+            if (route.properties("capacity").hasNext()) {
+                routeMap.put("capacity", route.value("capacity"));
+            }
+            
+            return routeMap;
+        } catch (Exception e) {
+            return null;
+        }
+    }
 } 

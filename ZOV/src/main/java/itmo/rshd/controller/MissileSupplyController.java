@@ -23,6 +23,45 @@ public class MissileSupplyController {
         this.missileSupplyGraphService = missileSupplyGraphService;
     }
 
+    @GetMapping("/depots")
+    public ResponseEntity<List<Map<String, Object>>> getAllDepots() {
+        List<Map<String, Object>> depots = missileSupplyGraphService.getAllDepots();
+        return new ResponseEntity<>(depots, HttpStatus.OK);
+    }
+    
+    @GetMapping("/depots/{depotId}")
+    public ResponseEntity<Map<String, Object>> getDepotById(@PathVariable String depotId) {
+        Map<String, Object> depot = missileSupplyGraphService.getDepotById(depotId);
+        
+        if (depot == null) {
+            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+        }
+        
+        return new ResponseEntity<>(depot, HttpStatus.OK);
+    }
+    
+    @GetMapping("/routes")
+    public ResponseEntity<List<Map<String, Object>>> getAllRoutes() {
+        List<Map<String, Object>> routes = missileSupplyGraphService.getAllSupplyRoutes();
+        return new ResponseEntity<>(routes, HttpStatus.OK);
+    }
+    
+    @PutMapping("/routes/{sourceDepotId}/{targetDepotId}")
+    public ResponseEntity<Map<String, Object>> updateRouteStatus(
+            @PathVariable String sourceDepotId,
+            @PathVariable String targetDepotId,
+            @RequestParam boolean isActive) {
+        
+        Map<String, Object> updatedRoute = missileSupplyGraphService.updateRouteStatus(
+            sourceDepotId, targetDepotId, isActive);
+            
+        if (updatedRoute == null) {
+            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+        }
+        
+        return new ResponseEntity<>(updatedRoute, HttpStatus.OK);
+    }
+
     @PostMapping("/depots")
     public ResponseEntity<Map<String, Object>> addSupplyDepot(
             @RequestParam String depotId,

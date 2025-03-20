@@ -5,7 +5,8 @@ import {
   UserGroupIcon, 
   RocketLaunchIcon,
   ShieldCheckIcon,
-  ArrowRightOnRectangleIcon
+  ArrowRightOnRectangleIcon,
+  TruckIcon
 } from '@heroicons/react/24/outline';
 
 interface HeaderProps {
@@ -112,6 +113,20 @@ const Header: React.FC<HeaderProps> = ({
               >
                 <RocketLaunchIcon className="h-5 w-5 mr-1" />
                 <span>Missile Control</span>
+              </button>
+            )}
+
+            {isGovernmentUser && (
+              <button
+                onClick={() => onChangeTab('supply')}
+                className={`${
+                  currentTab === 'supply'
+                    ? 'bg-blue-50 text-blue-700'
+                    : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+                } px-3 py-2 rounded-md text-sm font-medium flex items-center`}
+              >
+                <TruckIcon className="h-5 w-5 mr-1" />
+                <span>Supply Chain</span>
               </button>
             )}
           </div>
