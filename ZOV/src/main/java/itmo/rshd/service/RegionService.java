@@ -7,8 +7,6 @@ import itmo.rshd.model.User;
 import itmo.rshd.repository.RegionRepository;
 import itmo.rshd.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.mongodb.core.geo.GeoJsonPoint;
-import org.springframework.data.mongodb.core.geo.GeoJsonPolygon;
 import org.springframework.stereotype.Service;
 
 import java.util.List;

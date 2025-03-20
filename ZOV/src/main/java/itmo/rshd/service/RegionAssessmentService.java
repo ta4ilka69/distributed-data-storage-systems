@@ -25,12 +25,8 @@ public class RegionAssessmentService {
     @Autowired
     private WebSocketService webSocketService;
     
-    private MissileSupplyGraphService missileSupplyGraphService;
-    
     @Autowired
-    public void setMissileSupplyGraphService(MissileSupplyGraphService missileSupplyGraphService) {
-        this.missileSupplyGraphService = missileSupplyGraphService;
-    }
+    private MissileSupplyGraphService missileSupplyGraphService;
 
     public boolean shouldDeployOreshnik(String regionId) {
         // Get the region by ID
@@ -58,18 +54,37 @@ public class RegionAssessmentService {
      * Checks if a region is part of the missile supply chain route
      */
     private boolean isRegionInSupplyChain(String regionId) {
-        // Get all active supply routes
-        List<Map<String, Object>> allRoutes = missileSupplyGraphService.getAllSupplyRoutes();
-        
-        // Check if this region contains any supply depots
-        List<Map<String, Object>> depotsInRegion = missileSupplyGraphService.findDepotsInRegion(regionId);
-        if (!depotsInRegion.isEmpty()) {
-            return true;
+        try {
+            if (missileSupplyGraphService == null) {
+                System.out.println("MissileSupplyGraphService is null. Assuming region is not in supply chain.");
+                return false;
+            }
+            
+            // Get all active supply routes
+            List<Map<String, Object>> allRoutes = missileSupplyGraphService.getAllSupplyRoutes();
+            if (allRoutes == null) {
+                allRoutes = new ArrayList<>();
+            }
+            
+            // Check if this region contains any supply depots
+            List<Map<String, Object>> depotsInRegion = missileSupplyGraphService.findDepotsInRegion(regionId);
+            if (depotsInRegion == null) {
+                depotsInRegion = new ArrayList<>();
+            }
+            
+            if (!depotsInRegion.isEmpty()) {
+                return true;
+            }
+            
+            // If we have a geospatial representation of routes, we could check if the route
+            // passes through this region, but for now we'll just check for depot presence
+            return false;
+        } catch (Exception e) {
+            // Log error and return false as a safe default
+            System.err.println("Error checking if region is in supply chain: " + e.getMessage());
+            e.printStackTrace();
+            return false;
         }
-        
-        // If we have a geospatial representation of routes, we could check if the route
-        // passes through this region, but for now we'll just check for depot presence
-        return false;
     }
 
     public boolean shouldDeployOreshnikByCalculation(String regionId) {
