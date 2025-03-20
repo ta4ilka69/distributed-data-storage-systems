@@ -126,10 +126,26 @@ public class DataGenerator implements CommandLineRunner {
             region.setName(regionNames[i]);
             region.setType(Region.RegionType.REGION);
             region.setParentRegionId(country.getId());
-            region.setAverageSocialRating(ThreadLocalRandom.current().nextDouble(50, 80));
+            
+            // Create more varied regional ratings
+            double socialRating;
+            if (i % 3 == 0) {
+                // Every third region is "bad" with low social rating
+                socialRating = ThreadLocalRandom.current().nextDouble(35, 45);
+                region.setUnderThreat(true);
+            } else if (i % 3 == 1) {
+                // Every third region + 1 is "normal"
+                socialRating = ThreadLocalRandom.current().nextDouble(50, 70);
+                region.setUnderThreat(false);
+            } else {
+                // Every third region + 2 is "good"
+                socialRating = ThreadLocalRandom.current().nextDouble(75, 90);
+                region.setUnderThreat(false);
+            }
+            
+            region.setAverageSocialRating(socialRating);
             region.setPopulationCount(0);
             region.setImportantPersonsCount(0);
-            region.setUnderThreat(ThreadLocalRandom.current().nextDouble() < 0.1); // 10% under threat
 
             // Create GeoJsonPolygon boundaries
             GeoJsonPolygon boundaries = createBoundaries(regionCoords[i][0], regionCoords[i][1], 5.0);
@@ -151,22 +167,40 @@ public class DataGenerator implements CommandLineRunner {
 
             for (int i = 0; i < cityCount; i++) {
                 Region city = new Region();
-                city.setName(faker.address().city());
+                
+                // Balance city types: 20% bad, 60% normal, 20% good
+                double cityType = ThreadLocalRandom.current().nextDouble();
+                double socialRating;
+                String namePrefix = "";
+                
+                if (cityType < 0.2) {
+                    // "Bad" city - lower social rating
+                    socialRating = ThreadLocalRandom.current().nextDouble(30, 45);
+                    namePrefix = "Депрессивный ";
+                } else if (cityType < 0.8) {
+                    // "Normal" city - average social rating
+                    socialRating = ThreadLocalRandom.current().nextDouble(50, 70);
+                } else {
+                    // "Good" city - high social rating
+                    socialRating = ThreadLocalRandom.current().nextDouble(75, 90);
+                    namePrefix = "Процветающий ";
+                }
+                
+                city.setName(namePrefix + faker.address().city());
                 city.setType(Region.RegionType.CITY);
                 city.setParentRegionId(federalRegion.getId());
-
-                // Social rating - tend to be higher in cities
-                city.setAverageSocialRating(ThreadLocalRandom.current().nextDouble(55, 85));
+                city.setAverageSocialRating(socialRating);
                 city.setPopulationCount(0);
                 city.setImportantPersonsCount(0);
-                city.setUnderThreat(ThreadLocalRandom.current().nextDouble() < 0.08); // 8% chance
+                
+                // Some cities with very low ratings are under threat
+                city.setUnderThreat(socialRating < 35);
 
                 // Get a random point within the federal region's boundaries
                 GeoLocation center = getRandomPointInBoundaries(federalRegion.getBoundaries());
                 
                 // Create city boundaries (smaller than federal regions)
-                // Reduce size to ensure it stays within parent region
-                double size = 0.2; // Reduced from 0.5 to keep cities well inside the region
+                double size = 0.2;
                 GeoJsonPolygon boundaries = createBoundaries(center.getLatitude(), center.getLongitude(), size);
                 city.setBoundaries(boundaries);
 
@@ -187,24 +221,51 @@ public class DataGenerator implements CommandLineRunner {
 
             for (int i = 0; i < districtCount; i++) {
                 Region district = new Region();
-                district.setName(faker.address().streetName() + " District");
+                
+                // Balance district types: 30% bad, 50% normal, 20% good
+                double districtType = ThreadLocalRandom.current().nextDouble();
+                double socialRating;
+                String namePrefix;
+                
+                if (districtType < 0.3) {
+                    // "Bad" district - low social rating, eligible for missile
+                    socialRating = ThreadLocalRandom.current().nextDouble(20, 32);
+                    namePrefix = "Проблемный ";
+                    district.setUnderThreat(true);
+                } else if (districtType < 0.8) {
+                    // "Normal" district - average social rating
+                    socialRating = ThreadLocalRandom.current().nextDouble(45, 70);
+                    namePrefix = "";
+                    district.setUnderThreat(false);
+                } else {
+                    // "Good" district - high social rating
+                    socialRating = ThreadLocalRandom.current().nextDouble(75, 95);
+                    namePrefix = "Образцовый ";
+                    district.setUnderThreat(false);
+                }
+                
+                district.setName(namePrefix + faker.address().streetName() + " District");
                 district.setType(Region.RegionType.DISTRICT);
                 district.setParentRegionId(city.getId());
-
-                // Social rating - varies more in districts
-                district.setAverageSocialRating(ThreadLocalRandom.current().nextDouble(30, 90));
+                district.setAverageSocialRating(socialRating);
                 district.setPopulationCount(0);
-                district.setImportantPersonsCount(0);
 
-                // Some districts are under threat (those with low ratings)
-                district.setUnderThreat(district.getAverageSocialRating() < 40);
+                // Distribute important persons based on social rating
+                // Higher social rating districts have more important persons
+                if (socialRating > 70) {
+                    district.setImportantPersonsCount(ThreadLocalRandom.current().nextInt(2, 5));
+                } else if (socialRating > 40) {
+                    district.setImportantPersonsCount(ThreadLocalRandom.current().nextInt(0, 2));
+                } else {
+                    // Low social rating districts have no important persons
+                    district.setImportantPersonsCount(0);
+                }
 
                 // Get a random point within the city's boundaries
                 GeoLocation center = getRandomPointInBoundaries(city.getBoundaries());
 
                 // Create district boundaries (smaller than cities)
-                // Reduce size to ensure it stays within parent city
-                double size = 0.05; // Reduced from 0.1 to keep districts well inside the city
+                double size = 0.05;
                 GeoJsonPolygon boundaries = createBoundaries(center.getLatitude(), center.getLongitude(), size);
                 district.setBoundaries(boundaries);
 
@@ -216,10 +277,9 @@ public class DataGenerator implements CommandLineRunner {
     }
 
     private void createUsers(List<Region> districts, List<Region> cities, List<Region> federalRegions, Region country) {
-        // Status distribution: 60% REGULAR, 25% LOW, 10% IMPORTANT, 5% VIP
+        // Status distribution based on district type
         User.SocialStatus[] statusOptions = User.SocialStatus.values();
-        double[] statusDistribution = { 0.39, 0.6, 0.0099, 0.0001 };
-
+        
         List<User> users = new ArrayList<>();
 
         // Create country president
@@ -252,21 +312,44 @@ public class DataGenerator implements CommandLineRunner {
             Region city = findRegionById(cities, district.getParentRegionId());
             Region federalRegion = findRegionById(federalRegions, city.getParentRegionId());
 
-            // Determine status based on distribution
-            double r = ThreadLocalRandom.current().nextDouble();
-            double sum = 0;
-            User.SocialStatus status = User.SocialStatus.REGULAR; // Default
-
-            for (int j = 0; j < statusDistribution.length; j++) {
-                sum += statusDistribution[j];
-                if (r <= sum) {
-                    status = statusOptions[j];
-                    break;
+            // Determine status and social rating based on district rating
+            User.SocialStatus status;
+            double minRating, maxRating;
+            
+            // Distribute social statuses based on district's social rating
+            double districtRating = district.getAverageSocialRating();
+            double random = ThreadLocalRandom.current().nextDouble();
+            
+            if (districtRating < 35) {
+                // Low-rated district: 60% LOW, 40% REGULAR, 0% IMPORTANT, 0% VIP
+                if (random < 0.6) {
+                    status = User.SocialStatus.LOW;
+                } else {
+                    status = User.SocialStatus.REGULAR;
+                }
+            } else if (districtRating < 70) {
+                // Mid-rated district: 20% LOW, 75% REGULAR, 5% IMPORTANT, 0% VIP
+                if (random < 0.2) {
+                    status = User.SocialStatus.LOW;
+                } else if (random < 0.95) {
+                    status = User.SocialStatus.REGULAR;
+                } else {
+                    status = User.SocialStatus.IMPORTANT;
+                }
+            } else {
+                // High-rated district: 5% LOW, 80% REGULAR, 14% IMPORTANT, 1% VIP
+                if (random < 0.05) {
+                    status = User.SocialStatus.LOW;
+                } else if (random < 0.85) {
+                    status = User.SocialStatus.REGULAR;
+                } else if (random < 0.99) {
+                    status = User.SocialStatus.IMPORTANT;
+                } else {
+                    status = User.SocialStatus.VIP;
                 }
             }
 
             // Define rating range based on status
-            double minRating = 0, maxRating = 0;
             switch (status) {
                 case LOW:
                     minRating = 10;
@@ -284,6 +367,9 @@ public class DataGenerator implements CommandLineRunner {
                     minRating = 90;
                     maxRating = 100;
                     break;
+                default:
+                    minRating = 40;
+                    maxRating = 69;
             }
 
             // Create the user
