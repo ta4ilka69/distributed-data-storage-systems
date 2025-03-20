@@ -217,4 +217,8 @@ public class RegionService {
     public List<Region> findRegionsUnderThreat(RegionType type) {
         return regionRepository.findRegionsUnderThreat(type);
     }
+
+    public List<Region> getRegionsByType(RegionType type) {
+        return regionRepository.findByType(type);
+    }
 }

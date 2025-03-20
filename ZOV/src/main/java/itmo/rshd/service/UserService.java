@@ -4,6 +4,7 @@ import itmo.rshd.model.GeoLocation;
 import itmo.rshd.model.User;
 import itmo.rshd.model.User.SocialStatus;
 import itmo.rshd.repository.UserRepository;
+import itmo.rshd.model.Region;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -14,10 +15,12 @@ import java.util.Optional;
 public class UserService {
 
     private final UserRepository userRepository;
+    private final RegionService regionService;
 
     @Autowired
-    public UserService(UserRepository userRepository) {
+    public UserService(UserRepository userRepository, RegionService regionService) {
         this.userRepository = userRepository;
+        this.regionService = regionService;
     }
 
     public User createUser(User user) {
@@ -75,7 +78,12 @@ public class UserService {
                 user.setStatus(SocialStatus.LOW);
             }
             
-            return userRepository.save(user);
+            User updatedUser = userRepository.save(user);
+            
+            // Update region statistics for all affected regions
+            updateUserRelatedRegionStatistics(user);
+            
+            return updatedUser;
         }
         return null;
     }
@@ -135,7 +143,12 @@ public class UserService {
                 target.setSocialRating(newRating);
                 // Update target's status based on new rating
                 updateUserStatusBasedOnRating(target);
-                return userRepository.save(target);
+                User updatedTarget = userRepository.save(target);
+                
+                // Update region statistics for the target's regions
+                updateUserRelatedRegionStatistics(target);
+                
+                return updatedTarget;
             }
             
             // For regular and low status users, use the original impact calculation
@@ -166,7 +179,12 @@ public class UserService {
             // Update status based on new rating
             updateUserStatusBasedOnRating(rater);
             
-            return userRepository.save(rater);
+            User updatedRater = userRepository.save(rater);
+            
+            // Update region statistics for the rater's regions
+            updateUserRelatedRegionStatistics(rater);
+            
+            return updatedRater;
         }
         
         return null;
@@ -183,6 +201,42 @@ public class UserService {
             user.setStatus(SocialStatus.REGULAR);
         } else {
             user.setStatus(SocialStatus.LOW);
+        }
+    }
+
+    // Helper method to update region statistics for a user's regions
+    private void updateUserRelatedRegionStatistics(User user) {
+        // Update district, city, region, and country statistics
+        if (user.getDistrictId() != null && !user.getDistrictId().equals("none")) {
+            regionService.updateRegionStatistics(user.getDistrictId());
+            
+            // Find parent city of this district
+            Optional<Region> districtOpt = regionService.getRegionById(user.getDistrictId());
+            if (districtOpt.isPresent() && districtOpt.get().getParentRegionId() != null) {
+                String cityId = districtOpt.get().getParentRegionId();
+                regionService.updateRegionStatistics(cityId);
+                
+                // Find parent region of this city
+                Optional<Region> cityOpt = regionService.getRegionById(cityId);
+                if (cityOpt.isPresent() && cityOpt.get().getParentRegionId() != null) {
+                    String regionId = cityOpt.get().getParentRegionId();
+                    regionService.updateRegionStatistics(regionId);
+                }
+            }
+        } else if (user.getRegionId() != null && !user.getRegionId().equals("none")) {
+            // User might be directly associated with a city or region
+            regionService.updateRegionStatistics(user.getRegionId());
+            
+            // Check if this is a city and update its parent region
+            Optional<Region> regionOpt = regionService.getRegionById(user.getRegionId());
+            if (regionOpt.isPresent() && regionOpt.get().getParentRegionId() != null) {
+                regionService.updateRegionStatistics(regionOpt.get().getParentRegionId());
+            }
+        }
+        
+        // Always update the country statistics
+        if (user.getCountryId() != null) {
+            regionService.updateRegionStatistics(user.getCountryId());
         }
     }
 } 
