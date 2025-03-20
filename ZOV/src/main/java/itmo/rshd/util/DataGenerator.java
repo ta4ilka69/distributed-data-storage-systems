@@ -498,7 +498,7 @@ public class DataGenerator implements CommandLineRunner {
     
     // Helper to get a random point within given boundaries
     private GeoLocation getRandomPointInBoundaries(GeoJsonPolygon boundaries) {
-        List<Point> points = boundaries.getPoints(); // Get points directly from polygon
+        List<Point> points = boundaries.getPoints(); // Get points directly from GeoJsonPolygon
 
         if (points.size() < 4) { // Must have at least four points to form a polygon
             // Default to center of Russia if boundaries not properly defined
@@ -522,15 +522,12 @@ public class DataGenerator implements CommandLineRunner {
         double lat = minLat + (maxLat - minLat) * ThreadLocalRandom.current().nextDouble();
         double lon = minLon + (maxLon - minLon) * ThreadLocalRandom.current().nextDouble();
         
-        // Optionally, verify if the point lies within the polygon
-        // This can be added using computational geometry if necessary
-        
         return new GeoLocation(lat, lon);
     }
     
     // Helper to calculate center point of a polygon
     private GeoLocation getCenterPoint(GeoJsonPolygon boundaries) {
-        List<Point> points = boundaries.getPoints(); // Get points directly from polygon
+        List<Point> points = boundaries.getPoints(); // Get points directly from GeoJsonPolygon
 
         if (points.size() < 4) { // Must have at least four points to form a polygon
             // Default to center of Russia if boundaries not properly defined

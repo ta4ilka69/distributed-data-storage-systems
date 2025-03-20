@@ -5,6 +5,8 @@ import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
+import org.springframework.data.mongodb.core.geo.GeoJsonPolygon;
+import org.springframework.data.geo.Point;
 import itmo.rshd.repository.RegionRepository;
 import itmo.rshd.model.Region;
 import itmo.rshd.model.GeoLocation;
@@ -153,15 +155,23 @@ public class MissileSupplyChainGenerator implements CommandLineRunner {
         }
     }
 
-    private GeoLocation calculateCenterPoint(List<GeoLocation> boundaries) {
-        double latSum = 0, lonSum = 0;
-        for (GeoLocation point : boundaries) {
-            latSum += point.getLatitude();
-            lonSum += point.getLongitude();
+    private GeoLocation calculateCenterPoint(GeoJsonPolygon boundaries) {
+        List<Point> points = boundaries.getPoints();
+        
+        if (points.size() < 4) {
+            // Default to center of Russia if boundaries not properly defined
+            return new GeoLocation(55.7558, 37.6173); // Moscow coordinates as default
         }
+        
+        double latSum = 0, lonSum = 0;
+        for (Point point : points) {
+            latSum += point.getY(); // Latitude
+            lonSum += point.getX(); // Longitude
+        }
+        
         return new GeoLocation(
-            latSum / boundaries.size(),
-            lonSum / boundaries.size()
+            latSum / points.size(),
+            lonSum / points.size()
         );
     }
 } 
