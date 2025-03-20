@@ -3,7 +3,6 @@ package itmo.rshd.service;
 import java.util.List;
 import java.util.Optional;
 import java.util.ArrayList;
-import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -24,20 +23,12 @@ public class RegionAssessmentService {
     
     @Autowired
     private WebSocketService webSocketService;
-    
-    @Autowired
-    private MissileSupplyGraphService missileSupplyGraphService;
 
     public boolean shouldDeployOreshnik(String regionId) {
         // Get the region by ID
         Region region = regionRepository.findById(regionId).orElse(null);
         if (region == null) {
             return false;
-        }
-
-        // Check if the region is part of a supply chain route
-        if (isRegionInSupplyChain(regionId)) {
-            return false; // Can't target regions that are part of supply chains
         }
 
         // Check if region has low average rating and no important persons
@@ -48,43 +39,6 @@ public class RegionAssessmentService {
         
         return region.getAverageSocialRating() < 39
                 && region.getImportantPersonsCount() / region.getPopulationCount() < 0.02;
-    }
-    
-    /**
-     * Checks if a region is part of the missile supply chain route
-     */
-    private boolean isRegionInSupplyChain(String regionId) {
-        try {
-            if (missileSupplyGraphService == null) {
-                System.out.println("MissileSupplyGraphService is null. Assuming region is not in supply chain.");
-                return false;
-            }
-            
-            // Get all active supply routes
-            List<Map<String, Object>> allRoutes = missileSupplyGraphService.getAllSupplyRoutes();
-            if (allRoutes == null) {
-                allRoutes = new ArrayList<>();
-            }
-            
-            // Check if this region contains any supply depots
-            List<Map<String, Object>> depotsInRegion = missileSupplyGraphService.findDepotsInRegion(regionId);
-            if (depotsInRegion == null) {
-                depotsInRegion = new ArrayList<>();
-            }
-            
-            if (!depotsInRegion.isEmpty()) {
-                return true;
-            }
-            
-            // If we have a geospatial representation of routes, we could check if the route
-            // passes through this region, but for now we'll just check for depot presence
-            return false;
-        } catch (Exception e) {
-            // Log error and return false as a safe default
-            System.err.println("Error checking if region is in supply chain: " + e.getMessage());
-            e.printStackTrace();
-            return false;
-        }
     }
 
     public boolean shouldDeployOreshnikByCalculation(String regionId) {
@@ -103,23 +57,12 @@ public class RegionAssessmentService {
 
         // Check for important persons in the region
         List<User> importantPersons = userRepository.findImportantPersonsInRegion(regionId);
-        
-        // Check if the region is part of a supply chain route
-        if (isRegionInSupplyChain(regionId)) {
-            return false; // Can't target regions that are part of supply chains
-        }
 
         return averageRating < 30 && importantPersons.isEmpty();
     }
 
     public boolean deployOreshnik(String regionId) {
         if (shouldDeployOreshnik(regionId)) {
-            // Check one more time if the region is part of the supply chain
-            if (isRegionInSupplyChain(regionId)) {
-                System.out.println("Cannot deploy ORESHNIK to region " + regionId + " as it is part of the supply chain");
-                return false;
-            }
-            
             // Implementation of missile deployment logic
             System.out.println("ORESHNIK deployed to region: " + regionId);
 

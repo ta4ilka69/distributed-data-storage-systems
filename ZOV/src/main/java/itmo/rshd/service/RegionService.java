@@ -17,16 +17,13 @@ public class RegionService {
 
     private final RegionRepository regionRepository;
     private final UserRepository userRepository;
-    private RegionAssessmentService regionAssessmentService;
+    private final RegionAssessmentService regionAssessmentService;
 
     @Autowired
-    public RegionService(RegionRepository regionRepository, UserRepository userRepository) {
+    public RegionService(RegionRepository regionRepository, UserRepository userRepository,
+            RegionAssessmentService regionAssessmentService) {
         this.regionRepository = regionRepository;
         this.userRepository = userRepository;
-    }
-    
-    @Autowired
-    public void setRegionAssessmentService(RegionAssessmentService regionAssessmentService) {
         this.regionAssessmentService = regionAssessmentService;
     }
 

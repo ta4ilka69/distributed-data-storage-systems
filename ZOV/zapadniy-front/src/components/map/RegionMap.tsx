@@ -1,11 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, Polygon, useMap, Polyline } from 'react-leaflet';
-import { Region, GeoLocation } from '../../types';
+import { MapContainer, TileLayer, Marker, Popup, Polygon, useMap } from 'react-leaflet';
+import { Region , GeoLocation } from '../../types';
 import { ExclamationTriangleIcon } from '@heroicons/react/24/solid';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 import { regionService } from '../../services/regionService';
-import { missileSupplyService } from '../../services/missileSupplyService';
 
 // Fix the marker icon issue in Leaflet with React
 delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -23,35 +22,11 @@ const missileIcon = new L.Icon({
   popupAnchor: [0, -40],
 });
 
-// Custom icon for supply depots
-const depotIcon = new L.Icon({
-  iconUrl: 'https://cdn-icons-png.flaticon.com/512/4668/4668814.png',
-  iconSize: [32, 32],
-  iconAnchor: [16, 32],
-  popupAnchor: [0, -32],
-});
-
 interface RegionMapProps {
   regions: Region[];
   currentLocation?: GeoLocation;
   targetRegionId: string | null;
   onSelectRegion?: (region: Region) => void;
-}
-
-interface SupplyDepot {
-  depotId: string;
-  name: string;
-  latitude: number;
-  longitude: number;
-  capacity: number;
-  currentStock: number;
-}
-
-interface SupplyRoute {
-  sourceDepotId: string;
-  targetDepotId: string;
-  distance: number;
-  riskFactor: number;
 }
 
 const MapCenter: React.FC<{ center: [number, number] }> = ({ center }) => {
@@ -76,9 +51,6 @@ const RegionMap: React.FC<RegionMapProps> = ({
   const [subRegions, setSubRegions] = useState<Region[]>([]);
   const [displayRegions, setDisplayRegions] = useState<Region[]>(regions);
   const [parentRegion, setParentRegion] = useState<Region | null>(null);
-  const [supplyDepots, setSupplyDepots] = useState<SupplyDepot[]>([]);
-  const [supplyRoutes, setSupplyRoutes] = useState<SupplyRoute[]>([]);
-  const [showSupplyChain, setShowSupplyChain] = useState<boolean>(true);
 
   useEffect(() => {
     if (currentLocation) {
@@ -144,64 +116,7 @@ const RegionMap: React.FC<RegionMapProps> = ({
     fetchSubRegions();
   }, [targetRegionId, regions, parentRegion]);
 
-  // Fetch supply chain data
-  useEffect(() => {
-    const fetchSupplyChain = async () => {
-      try {
-        const chainData = await missileSupplyService.getSupplyChainVisualization();
-        setSupplyDepots(chainData.depots);
-        setSupplyRoutes(chainData.routes);
-      } catch (error) {
-        console.error('Failed to fetch supply chain data:', error);
-      }
-    };
-    
-    fetchSupplyChain();
-    
-    // Set up WebSocket connection for supply chain updates
-    const websocket = new WebSocket(`ws://${window.location.host}/websocket`);
-    
-    websocket.onmessage = (event) => {
-      const message = JSON.parse(event.data);
-      if (message.type === 'SUPPLY_CHAIN_UPDATE') {
-        setSupplyDepots(message.depots);
-        setSupplyRoutes(message.routes);
-      }
-    };
-    
-    return () => {
-      websocket.close();
-    };
-  }, []);
-
-  // Find depot by ID
-  const findDepot = (depotId: string): SupplyDepot | undefined => {
-    return supplyDepots.find(depot => depot.depotId === depotId);
-  };
-
   const getRegionColor = (region: Region): string => {
-    // Check if this region contains any supply depots
-    const hasSupplyDepot = supplyDepots.some(depot => {
-      // This is a simplistic check - in a real app, we'd use a proper geospatial check
-      // to see if the depot is within the region's boundaries
-      if (region.boundaries && region.boundaries.length > 0) {
-        const regionCenter = {
-          latitude: region.boundaries.reduce((sum, point) => sum + point.latitude, 0) / region.boundaries.length,
-          longitude: region.boundaries.reduce((sum, point) => sum + point.longitude, 0) / region.boundaries.length
-        };
-        
-        // Check if depot is near the region center (within ~50km)
-        const latDiff = Math.abs(depot.latitude - regionCenter.latitude);
-        const lngDiff = Math.abs(depot.longitude - regionCenter.longitude);
-        return latDiff < 0.5 && lngDiff < 0.5; // Rough approximation
-      }
-      return false;
-    });
-    
-    if (hasSupplyDepot) {
-      return '#0066ff'; // Blue for regions with supply depots
-    }
-    
     if (region.id === targetRegionId) {
       return '#ff0000'; // Target region (red)
     }
@@ -256,151 +171,185 @@ const RegionMap: React.FC<RegionMapProps> = ({
   };
 
   return (
-    <div className="relative h-full">
-      <div className="absolute top-2 right-2 z-10 bg-white p-2 rounded shadow">
-        <div className="flex items-center">
-          <input
-            type="checkbox"
-            id="showSupplyChain"
-            checked={showSupplyChain}
-            onChange={(e) => setShowSupplyChain(e.target.checked)}
-            className="mr-2"
-          />
-          <label htmlFor="showSupplyChain">Show Supply Chain</label>
-        </div>
-      </div>
+    <MapContainer 
+      center={center} 
+      zoom={6} 
+      style={{ height: '100%', width: '100%', minHeight: '500px' }}
+    >
+      <TileLayer
+        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+      />
       
-      <MapContainer
-        center={center}
-        zoom={5}
-        style={{ height: '100%', width: '100%' }}
-      >
-        <TileLayer
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-        />
-        <MapCenter center={center} />
-        
-        {/* Display regions */}
-        {displayRegions.map((region) => {
-          if (!region.boundaries || region.boundaries.length < 3) {
-            return null;
-          }
-          
-          const polygonPositions = region.boundaries.map(point => [point.latitude, point.longitude] as [number, number]);
-          
-          return (
-            <Polygon
-              key={region.id}
-              positions={polygonPositions}
-              pathOptions={{
+      <MapCenter center={center} />
+      
+      {displayRegions && displayRegions.length > 0 ? (
+        // First render the parent region (if we have one)
+        displayRegions
+          .filter(region => !isSubRegion(region))
+          .map(region => {
+            console.log('Processing parent region:', region.name, 'Boundaries:', region.boundaries);
+            if (!Array.isArray(region.boundaries) || region.boundaries.length < 3) {
+              console.warn(`Region ${region.name} has invalid boundaries:`, region.boundaries);
+              return null;
+            }
+
+            return (
+              <React.Fragment key={region.id || Math.random().toString()}>
+                <Polygon 
+                  positions={region.boundaries.map(loc => [loc.latitude, loc.longitude])}
+                  pathOptions={{ 
+                    color: getRegionColor(region),
+                    fillColor: getRegionColor(region),
+                    fillOpacity: getRegionFillOpacity(region),
+                    weight: 2,
+                    bubblingMouseEvents: subRegions.length > 0 && region.id === targetRegionId,
+                    interactive: true
+                  }}
+                  eventHandlers={{
+                    click: (e) => {
+                      // If we have subregions and the click is on the parent region,
+                      // only handle the click if we're not clicking directly on a subregion
+                      if (subRegions.length > 0 && region.id === targetRegionId) {
+                        // Let event propagate to potentially hit subregions
+                        return;
+                      }
+                      handleRegionClick(region);
+                    }
+                  }}
+                >
+                  <Popup>
+                    <div className="p-2">
+                      <h3 className="font-bold">{region.name}</h3>
+                      <p className="text-sm">Type: {region.type}</p>
+                      <p className="text-sm">Population: {region.populationCount.toLocaleString()}</p>
+                      <p className="text-sm">Avg Social Rating: {region.averageSocialRating.toFixed(1)}</p>
+                      <p className="text-sm">Important Persons: {region.importantPersonsCount}</p>
+                      
+                      {region.underThreat && (
+                        <div className="mt-2 bg-red-100 p-2 rounded-md flex items-center">
+                          <ExclamationTriangleIcon className="h-5 w-5 text-red-600 mr-1" />
+                          <span className="text-red-700 text-sm font-medium">Under Threat</span>
+                        </div>
+                      )}
+                    </div>
+                  </Popup>
+                </Polygon>
+
+                {region.id === targetRegionId && (
+                  <Marker 
+                    position={[
+                      // Use the center of the region (average of all boundary points)
+                      region.boundaries.reduce((sum, point) => sum + point.latitude, 0) / region.boundaries.length,
+                      region.boundaries.reduce((sum, point) => sum + point.longitude, 0) / region.boundaries.length
+                    ]}
+                    icon={missileIcon}
+                  >
+                    <Popup>
+                      <div className="p-2 text-center">
+                        <p className="font-bold text-red-600">ORESHNIK MISSILE TARGET</p>
+                        <p className="text-sm">Region: {region.name}</p>
+                      </div>
+                    </Popup>
+                  </Marker>
+                )}
+              </React.Fragment>
+            );
+          })
+      ) : (
+        <div style={{
+          position: 'absolute',
+          top: '50%',
+          left: '50%',
+          transform: 'translate(-50%, -50%)',
+          background: 'white',
+          padding: '10px',
+          borderRadius: '5px',
+          zIndex: 1000
+        }}>No regions found</div>
+      )}
+      
+      {/* Then render the subregions on top */}
+      {displayRegions && displayRegions.filter(region => isSubRegion(region)).map(region => {
+        console.log('Processing subregion:', region.name, 'Boundaries:', region.boundaries);
+        if (!Array.isArray(region.boundaries) || region.boundaries.length < 3) {
+          console.warn(`Region ${region.name} has invalid boundaries:`, region.boundaries);
+          return null;
+        }
+
+        return (
+          <React.Fragment key={region.id || Math.random().toString()}>
+            <Polygon 
+              positions={region.boundaries.map(loc => [loc.latitude, loc.longitude])}
+              pathOptions={{ 
                 color: getRegionColor(region),
+                fillColor: getRegionColor(region),
                 fillOpacity: getRegionFillOpacity(region),
-                weight: region.id === targetRegionId ? 3 : 1,
+                weight: 3,
+                bubblingMouseEvents: false,
+                interactive: true,
+                pane: 'markerPane' // Use markerPane which has a higher z-index than overlayPane
               }}
               eventHandlers={{
-                click: () => handleRegionClick(region),
+                click: (e) => {
+                  // Always stop propagation for subregion clicks
+                  L.DomEvent.stopPropagation(e);
+                  handleRegionClick(region);
+                }
               }}
             >
               <Popup>
-                <div>
+                <div className="p-2">
                   <h3 className="font-bold">{region.name}</h3>
-                  <p>Type: {region.type}</p>
-                  <p>Population: {region.populationCount}</p>
-                  <p>Avg. Rating: {region.averageSocialRating.toFixed(1)}</p>
-                  <p>Important Persons: {region.importantPersonsCount}</p>
+                  <p className="text-sm">Type: {region.type}</p>
+                  <p className="text-sm">Population: {region.populationCount.toLocaleString()}</p>
+                  <p className="text-sm">Avg Social Rating: {region.averageSocialRating.toFixed(1)}</p>
+                  <p className="text-sm">Important Persons: {region.importantPersonsCount}</p>
+                  
                   {region.underThreat && (
-                    <p className="text-red-600 flex items-center">
-                      <ExclamationTriangleIcon className="h-4 w-4 mr-1" />
-                      Under Threat
-                    </p>
+                    <div className="mt-2 bg-red-100 p-2 rounded-md flex items-center">
+                      <ExclamationTriangleIcon className="h-5 w-5 text-red-600 mr-1" />
+                      <span className="text-red-700 text-sm font-medium">Under Threat</span>
+                    </div>
                   )}
                 </div>
               </Popup>
             </Polygon>
-          );
-        })}
-        
-        {/* Display missile target marker */}
-        {targetRegionId && (
-          <Marker 
-            position={center} 
-            icon={missileIcon}
-          >
-            <Popup>
-              <div>
-                <h3 className="font-bold">Targeted Region</h3>
-                <p>ID: {targetRegionId}</p>
-              </div>
-            </Popup>
-          </Marker>
-        )}
-        
-        {/* Display supply depots and routes if enabled */}
-        {showSupplyChain && (
-          <>
-            {/* Supply Routes */}
-            {supplyRoutes.map((route, index) => {
-              const sourceDepot = findDepot(route.sourceDepotId);
-              const targetDepot = findDepot(route.targetDepotId);
-              
-              if (!sourceDepot || !targetDepot) return null;
-              
-              return (
-                <Polyline
-                  key={`route-${index}`}
-                  positions={[
-                    [sourceDepot.latitude, sourceDepot.longitude],
-                    [targetDepot.latitude, targetDepot.longitude]
-                  ]}
-                  pathOptions={{
-                    color: '#0066cc',
-                    weight: 3,
-                    opacity: 0.7,
-                    dashArray: '5, 5'
-                  }}
-                >
-                  <Popup>
-                    <div>
-                      <h3 className="font-bold">Supply Route</h3>
-                      <p>From: {sourceDepot.name}</p>
-                      <p>To: {targetDepot.name}</p>
-                      <p>Distance: {route.distance.toFixed(1)} km</p>
-                      <p>Risk Factor: {route.riskFactor.toFixed(2)}</p>
-                    </div>
-                  </Popup>
-                </Polyline>
-              );
-            })}
-            
-            {/* Supply Depots */}
-            {supplyDepots.map((depot) => (
-              <Marker
-                key={depot.depotId}
-                position={[depot.latitude, depot.longitude]}
-                icon={depotIcon}
+
+            {region.id === targetRegionId && (
+              <Marker 
+                position={[
+                  // Use the center of the region (average of all boundary points)
+                  region.boundaries.reduce((sum, point) => sum + point.latitude, 0) / region.boundaries.length,
+                  region.boundaries.reduce((sum, point) => sum + point.longitude, 0) / region.boundaries.length
+                ]}
+                icon={missileIcon}
               >
                 <Popup>
-                  <div>
-                    <h3 className="font-bold">{depot.name}</h3>
-                    <p>ID: {depot.depotId}</p>
-                    <p>Capacity: {depot.capacity}</p>
-                    <p>Current Stock: {depot.currentStock}</p>
+                  <div className="p-2 text-center">
+                    <p className="font-bold text-red-600">ORESHNIK MISSILE TARGET</p>
+                    <p className="text-sm">Region: {region.name}</p>
                   </div>
                 </Popup>
               </Marker>
-            ))}
-          </>
-        )}
-        
-        {/* Display user location if available */}
-        {currentLocation && (
-          <Marker position={[currentLocation.latitude, currentLocation.longitude]}>
-            <Popup>Your Location</Popup>
-          </Marker>
-        )}
-      </MapContainer>
-    </div>
+            )}
+          </React.Fragment>
+        );
+      })}
+      
+      {currentLocation && (
+        <Marker position={[currentLocation.latitude, currentLocation.longitude]}>
+          <Popup>
+            <div className="p-2">
+              <p className="font-bold">Your current location</p>
+              <p className="text-sm">
+                {currentLocation.latitude.toFixed(4)}, {currentLocation.longitude.toFixed(4)}
+              </p>
+            </div>
+          </Popup>
+        </Marker>
+      )}
+    </MapContainer>
   );
 };
 
