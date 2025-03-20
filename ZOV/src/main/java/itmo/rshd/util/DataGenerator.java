@@ -27,9 +27,13 @@ public class DataGenerator implements CommandLineRunner {
     private final RegionRepository regionRepository;
     private final Faker faker = new Faker(new Locale("ru"));
     
-    private static final int USERS_COUNT = 1200;  // Total users to generate
+    private static final int USERS_COUNT = 120000;  // Total users to generate
     private static final double RUSSIA_CENTER_LAT = 55.7558;
     private static final double RUSSIA_CENTER_LON = 37.6173;
+    private static final double MIN_VALID_LAT = -90;
+    private static final double MAX_VALID_LAT = 90;
+    private static final double MIN_VALID_LON = -180;
+    private static final double MAX_VALID_LON = 180;
 
     @Autowired
     public DataGenerator(UserRepository userRepository, RegionRepository regionRepository) {
@@ -346,7 +350,7 @@ public class DataGenerator implements CommandLineRunner {
             user.setDistrictId("none"); // National official
             
             // Capital location
-            user.setCurrentLocation(new GeoLocation(RUSSIA_CENTER_LAT, RUSSIA_CENTER_LON));
+            user.setCurrentLocation(createValidGeoLocation(RUSSIA_CENTER_LAT, RUSSIA_CENTER_LON));
         }
         
         return user;
@@ -502,7 +506,7 @@ public class DataGenerator implements CommandLineRunner {
 
         if (points.size() < 4) { // Must have at least four points to form a polygon
             // Default to center of Russia if boundaries not properly defined
-            return new GeoLocation(RUSSIA_CENTER_LAT, RUSSIA_CENTER_LON);
+            return createValidGeoLocation(RUSSIA_CENTER_LAT, RUSSIA_CENTER_LON);
         }
         
         // Find min/max coordinates
@@ -518,11 +522,18 @@ public class DataGenerator implements CommandLineRunner {
             maxLon = Math.max(maxLon, lon);
         }
         
+        // Ensure coordinates are within valid range
+        minLat = Math.max(minLat, -90);
+        maxLat = Math.min(maxLat, 90);
+        minLon = Math.max(minLon, -180);
+        maxLon = Math.min(maxLon, 180);
+        
         // Generate random coordinates within the bounding box
         double lat = minLat + (maxLat - minLat) * ThreadLocalRandom.current().nextDouble();
         double lon = minLon + (maxLon - minLon) * ThreadLocalRandom.current().nextDouble();
         
-        return new GeoLocation(lat, lon);
+        // Use our validator helper to ensure coordinates are valid
+        return createValidGeoLocation(lat, lon);
     }
     
     // Helper to calculate center point of a polygon
@@ -531,7 +542,7 @@ public class DataGenerator implements CommandLineRunner {
 
         if (points.size() < 4) { // Must have at least four points to form a polygon
             // Default to center of Russia if boundaries not properly defined
-            return new GeoLocation(RUSSIA_CENTER_LAT, RUSSIA_CENTER_LON);
+            return createValidGeoLocation(RUSSIA_CENTER_LAT, RUSSIA_CENTER_LON);
         }
         
         double sumLat = 0, sumLon = 0;
@@ -540,6 +551,26 @@ public class DataGenerator implements CommandLineRunner {
             sumLon += point.getX(); // Longitude
         }
         
-        return new GeoLocation(sumLat / points.size(), sumLon / points.size());
+        double avgLat = sumLat / points.size();
+        double avgLon = sumLon / points.size();
+        
+        // Use our validator helper to ensure coordinates are valid
+        return createValidGeoLocation(avgLat, avgLon);
+    }
+
+    /**
+     * Validates and sanitizes geographic coordinates to ensure they're within valid ranges
+     */
+    private GeoLocation createValidGeoLocation(double latitude, double longitude) {
+        double validLat = Math.max(MIN_VALID_LAT, Math.min(MAX_VALID_LAT, latitude));
+        double validLon = Math.max(MIN_VALID_LON, Math.min(MAX_VALID_LON, longitude));
+        
+        // Log if coordinates were adjusted
+        if (validLat != latitude || validLon != longitude) {
+            System.out.println("Warning: Adjusted invalid coordinates from (" + 
+                latitude + ", " + longitude + ") to (" + validLat + ", " + validLon + ")");
+        }
+        
+        return new GeoLocation(validLat, validLon);
     }
 }
