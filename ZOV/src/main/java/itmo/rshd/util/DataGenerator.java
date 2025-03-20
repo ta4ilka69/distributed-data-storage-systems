@@ -163,9 +163,11 @@ public class DataGenerator implements CommandLineRunner {
 
                 // Get a random point within the federal region's boundaries
                 GeoLocation center = getRandomPointInBoundaries(federalRegion.getBoundaries());
-
+                
                 // Create city boundaries (smaller than federal regions)
-                GeoJsonPolygon boundaries = createBoundaries(center.getLatitude(), center.getLongitude(), 0.5);
+                // Reduce size to ensure it stays within parent region
+                double size = 0.2; // Reduced from 0.5 to keep cities well inside the region
+                GeoJsonPolygon boundaries = createBoundaries(center.getLatitude(), center.getLongitude(), size);
                 city.setBoundaries(boundaries);
 
                 cities.add(regionRepository.save(city));
@@ -201,7 +203,9 @@ public class DataGenerator implements CommandLineRunner {
                 GeoLocation center = getRandomPointInBoundaries(city.getBoundaries());
 
                 // Create district boundaries (smaller than cities)
-                GeoJsonPolygon boundaries = createBoundaries(center.getLatitude(), center.getLongitude(), 0.1);
+                // Reduce size to ensure it stays within parent city
+                double size = 0.05; // Reduced from 0.1 to keep districts well inside the city
+                GeoJsonPolygon boundaries = createBoundaries(center.getLatitude(), center.getLongitude(), size);
                 district.setBoundaries(boundaries);
 
                 districts.add(regionRepository.save(district));
