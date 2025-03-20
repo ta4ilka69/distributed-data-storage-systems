@@ -49,13 +49,13 @@ const LoginForm: React.FC<LoginFormProps> = ({ onLoginSuccess }) => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
-      <div className="bg-white p-8 rounded-lg shadow-md w-full max-w-md">
-        <h2 className="text-2xl font-bold text-gray-900 mb-6">Вход</h2>
+    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#f3f4f6' }}>
+      <div style={{ backgroundColor: 'white', padding: '2rem', borderRadius: '0.5rem', boxShadow: '0 4px 6px rgba(0,0,0,0.1)', width: '100%', maxWidth: '24rem' }}>
+        <h2 style={{ fontSize: '1.5rem', fontWeight: 'bold', marginBottom: '1.5rem' }}>Вход</h2>
         
         <form onSubmit={handleSubmit}>
-          <div className="mb-4">
-            <label htmlFor="username" className="block text-gray-700 mb-2">
+          <div style={{ marginBottom: '1rem' }}>
+            <label htmlFor="username" style={{ display: 'block', marginBottom: '0.5rem' }}>
               Имя пользователя
             </label>
             <input
@@ -63,13 +63,13 @@ const LoginForm: React.FC<LoginFormProps> = ({ onLoginSuccess }) => {
               id="username"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              className="w-full p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+              style={{ width: '100%', padding: '0.5rem', border: '1px solid #d1d5db', borderRadius: '0.25rem' }}
               required
             />
           </div>
           
-          <div className="mb-6">
-            <label htmlFor="password" className="block text-gray-700 mb-2">
+          <div style={{ marginBottom: '1.5rem' }}>
+            <label htmlFor="password" style={{ display: 'block', marginBottom: '0.5rem' }}>
               Пароль
             </label>
             <input
@@ -77,22 +77,31 @@ const LoginForm: React.FC<LoginFormProps> = ({ onLoginSuccess }) => {
               id="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+              style={{ width: '100%', padding: '0.5rem', border: '1px solid #d1d5db', borderRadius: '0.25rem' }}
               required
             />
           </div>
           
           {error && (
-            <div className="mb-4 p-3 bg-red-100 text-red-700 rounded">
+            <div style={{ marginBottom: '1rem', padding: '0.75rem', backgroundColor: '#fee2e2', color: '#b91c1c', borderRadius: '0.25rem' }}>
               {error}
             </div>
           )}
           
-          <div className="flex space-x-4">
+          <div style={{ display: 'flex', gap: '0.5rem' }}>
             <button
               type="submit"
               disabled={loading}
-              className="bg-blue-500 text-white font-medium py-2 px-4 rounded hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 disabled:opacity-50 flex-1"
+              style={{ 
+                flex: '1',
+                backgroundColor: '#3b82f6', 
+                color: 'white', 
+                fontWeight: '500',
+                padding: '0.5rem 1rem', 
+                borderRadius: '0.25rem',
+                border: 'none',
+                cursor: 'pointer'
+              }}
             >
               {loading ? 'Загрузка...' : 'Вход'}
             </button>
@@ -100,7 +109,14 @@ const LoginForm: React.FC<LoginFormProps> = ({ onLoginSuccess }) => {
             <button
               type="button"
               onClick={fetchTestUsers}
-              className="bg-gray-200 text-gray-800 font-medium py-2 px-4 rounded hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-opacity-50"
+              style={{ 
+                backgroundColor: '#e5e7eb', 
+                color: '#1f2937', 
+                padding: '0.5rem 1rem', 
+                borderRadius: '0.25rem',
+                border: 'none',
+                cursor: 'pointer'
+              }}
             >
               Тестовые аккаунты
             </button>
@@ -108,20 +124,34 @@ const LoginForm: React.FC<LoginFormProps> = ({ onLoginSuccess }) => {
         </form>
 
         {showTestUsers && testUsers.length > 0 && (
-          <div className="mt-6 border-t pt-4">
-            <h3 className="text-lg font-semibold mb-2">Тестовые пользователи:</h3>
-            <div className="max-h-60 overflow-y-auto">
+          <div style={{ marginTop: '1.5rem', borderTop: '1px solid #e5e7eb', paddingTop: '1rem' }}>
+            <h3 style={{ fontSize: '1.125rem', fontWeight: '600', marginBottom: '0.5rem' }}>Тестовые пользователи:</h3>
+            <div style={{ maxHeight: '15rem', overflowY: 'auto' }}>
               {testUsers.map((user, index) => (
                 <div 
                   key={index}
                   onClick={() => selectTestUser(user.username, user.password)}
-                  className="p-2 border-b hover:bg-gray-100 cursor-pointer flex justify-between"
+                  style={{ 
+                    padding: '0.5rem', 
+                    borderBottom: '1px solid #e5e7eb', 
+                    cursor: 'pointer',
+                    display: 'flex',
+                    justifyContent: 'space-between'
+                  }}
                 >
                   <div>
-                    <p className="font-medium">{user.fullName}</p>
-                    <p className="text-sm text-gray-600">@{user.username}</p>
+                    <p style={{ fontWeight: '500' }}>{user.fullName}</p>
+                    <p style={{ fontSize: '0.875rem', color: '#4b5563' }}>@{user.username}</p>
+                    <p style={{ fontSize: '0.75rem', color: '#6b7280' }}>Password: {user.password}</p>
                   </div>
-                  <div className="text-xs px-2 py-1 rounded bg-blue-100 text-blue-800 self-start">
+                  <div style={{ 
+                    fontSize: '0.75rem', 
+                    padding: '0.25rem 0.5rem', 
+                    borderRadius: '9999px', 
+                    backgroundColor: '#dbeafe', 
+                    color: '#1e40af', 
+                    alignSelf: 'flex-start' 
+                  }}>
                     {user.status}
                   </div>
                 </div>
