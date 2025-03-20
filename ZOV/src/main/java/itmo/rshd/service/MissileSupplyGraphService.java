@@ -4,7 +4,6 @@ import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSo
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.__;
 import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
-import org.janusgraph.core.JanusGraph;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import jakarta.annotation.PostConstruct;
@@ -17,12 +16,10 @@ import java.util.stream.Collectors;
 @Service
 public class MissileSupplyGraphService {
 
-    private final JanusGraph janusGraph;
     private final GraphTraversalSource g;
 
     @Autowired
-    public MissileSupplyGraphService(JanusGraph janusGraph, GraphTraversalSource g) {
-        this.janusGraph = janusGraph;
+    public MissileSupplyGraphService(GraphTraversalSource g) {
         this.g = g;
     }
 
@@ -36,7 +33,7 @@ public class MissileSupplyGraphService {
 
     private void createInitialSchema() {
         // Create property keys and indices
-        janusGraph.tx().commit();
+        // No transaction needed for remote graph
     }
 
     public Vertex addSupplyDepot(String depotId, String name, double latitude, double longitude, int capacity) {
@@ -48,7 +45,6 @@ public class MissileSupplyGraphService {
                 .property("capacity", capacity)
                 .property("currentStock", 0)
                 .next();
-        g.tx().commit();
         return depot;
     }
 
@@ -59,7 +55,6 @@ public class MissileSupplyGraphService {
                 .property("range", range)
                 .property("effectRadius", effectRadius)
                 .next();
-        g.tx().commit();
         return missileType;
     }
 
@@ -74,7 +69,6 @@ public class MissileSupplyGraphService {
                 .property("riskFactor", riskFactor)
                 .property("isActive", true)
                 .next();
-        g.tx().commit();
         return route;
     }
 
@@ -109,8 +103,6 @@ public class MissileSupplyGraphService {
         Object stockObj = g.V(depot).values("currentStock").next();
         int currentStock = stockObj instanceof Number ? ((Number) stockObj).intValue() : 0;
         g.V(depot).property("currentStock", currentStock + quantity).iterate();
-        
-        g.tx().commit();
     }
 
     public List<Map<String, Object>> findOptimalSupplyRoute(String fromDepotId, String toDepotId) {

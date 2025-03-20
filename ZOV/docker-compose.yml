@@ -16,6 +16,7 @@ services:
       janusgraph.index.search.backend: elasticsearch
       janusgraph.index.search.hostname: elasticsearch
       janusgraph.index.search.elasticsearch.client-only: true
+    restart: always
 
   cassandra:
     image: cassandra:4
@@ -26,6 +27,7 @@ services:
       - CASSANDRA_START_RPC=true
       - HEAP_NEWSIZE=128M
       - MAX_HEAP_SIZE=1024M
+    restart: always
 
   elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch:7.17.10
@@ -36,4 +38,5 @@ services:
       - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
     ports:
       - "9200:9200"       # REST API
-      - "9300:9300"       # Inter-node communication 
+      - "9300:9300"       # Inter-node communication
+    restart: always 

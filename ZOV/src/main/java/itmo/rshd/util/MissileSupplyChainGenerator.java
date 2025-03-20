@@ -2,7 +2,6 @@ package itmo.rshd.util;
 
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSource;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
-import org.apache.tinkerpop.gremlin.structure.Transaction;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
@@ -29,47 +28,27 @@ public class MissileSupplyChainGenerator implements CommandLineRunner {
 
     @Override
     public void run(String... args) throws Exception {
-        // Get the transaction
-        Transaction tx = g.getGraph().tx();
-        
-        try {
-            // Start transaction
-            tx.open();
-            
-            // Check if supply chain already exists
-            if (g.V().hasLabel("SupplyDepot").count().next() > 0) {
-                System.out.println("Supply chain already exists. Skipping generation.");
-                return;
-            }
-
-            System.out.println("Generating missile supply chain...");
-            
-            // Create main hubs in federal regions
-            List<Region> federalRegions = regionRepository.findByType(Region.RegionType.REGION);
-            Map<String, Vertex> regionalHubs = createRegionalHubs(federalRegions);
-            
-            // Create local depots in cities
-            List<Region> cities = regionRepository.findByType(Region.RegionType.CITY);
-            Map<String, Vertex> cityDepots = createCityDepots(cities, regionalHubs);
-            
-            // Create distribution points in districts
-            List<Region> districts = regionRepository.findByType(Region.RegionType.DISTRICT);
-            createDistributionPoints(districts, cityDepots);
-
-            // Commit the transaction
-            tx.commit();
-            
-            System.out.println("Supply chain generation completed!");
-        } catch (Exception e) {
-            // Rollback on error
-            tx.rollback();
-            throw e;
-        } finally {
-            // Make sure to close the transaction
-            if (tx.isOpen()) {
-                tx.close();
-            }
+        // Check if supply chain already exists
+        if (g.V().hasLabel("SupplyDepot").count().next() > 0) {
+            System.out.println("Supply chain already exists. Skipping generation.");
+            return;
         }
+
+        System.out.println("Generating missile supply chain...");
+        
+        // Create main hubs in federal regions
+        List<Region> federalRegions = regionRepository.findByType(Region.RegionType.REGION);
+        Map<String, Vertex> regionalHubs = createRegionalHubs(federalRegions);
+        
+        // Create local depots in cities
+        List<Region> cities = regionRepository.findByType(Region.RegionType.CITY);
+        Map<String, Vertex> cityDepots = createCityDepots(cities, regionalHubs);
+        
+        // Create distribution points in districts
+        List<Region> districts = regionRepository.findByType(Region.RegionType.DISTRICT);
+        createDistributionPoints(districts, cityDepots);
+
+        System.out.println("Supply chain generation completed!");
     }
 
     private Map<String, Vertex> createRegionalHubs(List<Region> federalRegions) {
