@@ -10,6 +10,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
 import org.springframework.data.mongodb.core.geo.GeoJsonPolygon;
+import org.springframework.data.geo.Point;
 
 import java.util.*;
 import java.util.concurrent.ThreadLocalRandom;
@@ -77,12 +78,12 @@ public class DataGenerator implements CommandLineRunner {
         russia.setUnderThreat(false);
         
         // Create GeoJsonPolygon for Russia's boundaries
-        List<org.springframework.data.geo.Point> polygonPoints = Arrays.asList(
-            new org.springframework.data.geo.Point(30.0, 59.0),
-            new org.springframework.data.geo.Point(180.0, 59.0),
-            new org.springframework.data.geo.Point(180.0, 44.0),
-            new org.springframework.data.geo.Point(30.0, 44.0),
-            new org.springframework.data.geo.Point(30.0, 59.0) // Closing the polygon
+        List<Point> polygonPoints = Arrays.asList(
+            new Point(30.0, 59.0),
+            new Point(180.0, 59.0),
+            new Point(180.0, 44.0),
+            new Point(30.0, 44.0),
+            new Point(30.0, 59.0) // Closing the polygon
         );
         
         russia.setBoundaries(new GeoJsonPolygon(polygonPoints));
@@ -124,10 +125,10 @@ public class DataGenerator implements CommandLineRunner {
             region.setAverageSocialRating(ThreadLocalRandom.current().nextDouble(50, 80));
             region.setPopulationCount(0);
             region.setImportantPersonsCount(0);
-            region.setUnderThreat(ThreadLocalRandom.current().nextDouble() < 0.1); // 10% chance of being under threat
+            region.setUnderThreat(ThreadLocalRandom.current().nextDouble() < 0.1); // 10% under threat
             
-            // Create boundaries around the base coordinates
-            List<GeoLocation> boundaries = createBoundaries(regionCoords[i][0], regionCoords[i][1], 5.0);
+            // Create GeoJsonPolygon boundaries
+            GeoJsonPolygon boundaries = createBoundaries(regionCoords[i][0], regionCoords[i][1], 5.0);
             region.setBoundaries(boundaries);
             
             regions.add(regionRepository.save(region));
@@ -160,7 +161,7 @@ public class DataGenerator implements CommandLineRunner {
                 GeoLocation center = getRandomPointInBoundaries(federalRegion.getBoundaries());
                 
                 // Create city boundaries (smaller than federal regions)
-                List<GeoLocation> boundaries = createBoundaries(center.getLatitude(), center.getLongitude(), 0.5);
+                GeoJsonPolygon boundaries = createBoundaries(center.getLatitude(), center.getLongitude(), 0.5);
                 city.setBoundaries(boundaries);
                 
                 cities.add(regionRepository.save(city));
@@ -196,7 +197,7 @@ public class DataGenerator implements CommandLineRunner {
                 GeoLocation center = getRandomPointInBoundaries(city.getBoundaries());
                 
                 // Create district boundaries (smaller than cities)
-                List<GeoLocation> boundaries = createBoundaries(center.getLatitude(), center.getLongitude(), 0.1);
+                GeoJsonPolygon boundaries = createBoundaries(center.getLatitude(), center.getLongitude(), 0.1);
                 district.setBoundaries(boundaries);
                 
                 districts.add(regionRepository.save(district));
@@ -483,56 +484,65 @@ public class DataGenerator implements CommandLineRunner {
     }
     
     // Helper to create boundaries around a center point
-    private List<GeoLocation> createBoundaries(double centerLat, double centerLon, double size) {
-        List<GeoLocation> boundaries = new ArrayList<>();
+    private GeoJsonPolygon createBoundaries(double centerLat, double centerLon, double size) {
+        List<Point> polygonPoints = Arrays.asList(
+            new Point(centerLon - size, centerLat + size), // Northwest
+            new Point(centerLon + size, centerLat + size), // Northeast
+            new Point(centerLon + size, centerLat - size), // Southeast
+            new Point(centerLon - size, centerLat - size), // Southwest
+            new Point(centerLon - size, centerLat + size)  // Closing the polygon
+        );
         
-        // Create a square around the center point
-        boundaries.add(new GeoLocation(centerLat + size, centerLon - size)); // Northwest
-        boundaries.add(new GeoLocation(centerLat + size, centerLon + size)); // Northeast
-        boundaries.add(new GeoLocation(centerLat - size, centerLon + size)); // Southeast
-        boundaries.add(new GeoLocation(centerLat - size, centerLon - size)); // Southwest
-        
-        return boundaries;
+        return new GeoJsonPolygon(polygonPoints);
     }
     
     // Helper to get a random point within given boundaries
-    private GeoLocation getRandomPointInBoundaries(List<GeoLocation> boundaries) {
-        if (boundaries.size() < 3) {
+    private GeoLocation getRandomPointInBoundaries(GeoJsonPolygon boundaries) {
+        List<Point> points = boundaries.getPoints(); // Get points directly from polygon
+
+        if (points.size() < 4) { // Must have at least four points to form a polygon
             // Default to center of Russia if boundaries not properly defined
             return new GeoLocation(RUSSIA_CENTER_LAT, RUSSIA_CENTER_LON);
         }
         
-        // Find min/max coordinates of the boundaries
+        // Find min/max coordinates
         double minLat = Double.MAX_VALUE, maxLat = Double.MIN_VALUE;
         double minLon = Double.MAX_VALUE, maxLon = Double.MIN_VALUE;
         
-        for (GeoLocation point : boundaries) {
-            minLat = Math.min(minLat, point.getLatitude());
-            maxLat = Math.max(maxLat, point.getLatitude());
-            minLon = Math.min(minLon, point.getLongitude());
-            maxLon = Math.max(maxLon, point.getLongitude());
+        for (Point point : points) {
+            double lon = point.getX(); // Longitude first in GeoJSON
+            double lat = point.getY();
+            minLat = Math.min(minLat, lat);
+            maxLat = Math.max(maxLat, lat);
+            minLon = Math.min(minLon, lon);
+            maxLon = Math.max(maxLon, lon);
         }
         
         // Generate random coordinates within the bounding box
         double lat = minLat + (maxLat - minLat) * ThreadLocalRandom.current().nextDouble();
         double lon = minLon + (maxLon - minLon) * ThreadLocalRandom.current().nextDouble();
         
+        // Optionally, verify if the point lies within the polygon
+        // This can be added using computational geometry if necessary
+        
         return new GeoLocation(lat, lon);
     }
     
     // Helper to calculate center point of a polygon
-    private GeoLocation getCenterPoint(List<GeoLocation> boundaries) {
-        if (boundaries.size() < 3) {
+    private GeoLocation getCenterPoint(GeoJsonPolygon boundaries) {
+        List<Point> points = boundaries.getPoints(); // Get points directly from polygon
+
+        if (points.size() < 4) { // Must have at least four points to form a polygon
             // Default to center of Russia if boundaries not properly defined
             return new GeoLocation(RUSSIA_CENTER_LAT, RUSSIA_CENTER_LON);
         }
         
         double sumLat = 0, sumLon = 0;
-        for (GeoLocation point : boundaries) {
-            sumLat += point.getLatitude();
-            sumLon += point.getLongitude();
+        for (Point point : points) {
+            sumLat += point.getY(); // Latitude
+            sumLon += point.getX(); // Longitude
         }
         
-        return new GeoLocation(sumLat / boundaries.size(), sumLon / boundaries.size());
+        return new GeoLocation(sumLat / points.size(), sumLon / points.size());
     }
 }
