@@ -2,18 +2,13 @@ package itmo.rshd.config;
 
 import org.apache.tinkerpop.gremlin.driver.Cluster;
 import org.apache.tinkerpop.gremlin.driver.remote.DriverRemoteConnection;
-import org.apache.tinkerpop.gremlin.driver.ser.GraphBinaryMessageSerializerV1;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSource;
-import org.janusgraph.graphdb.tinkerpop.JanusGraphIoRegistry;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
 
 import jakarta.annotation.PreDestroy;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
 
 import static org.apache.tinkerpop.gremlin.process.traversal.AnonymousTraversalSource.traversal;
 
@@ -35,18 +30,9 @@ public class JanusGraphConfig {
         }
         
         try {
-            // Configure binary serializer with JanusGraph registry
-            GraphBinaryMessageSerializerV1 serializer = new GraphBinaryMessageSerializerV1();
-            
-            // Configure serializer to include JanusGraph specific serializers
-            Map<String, Object> config = new HashMap<>();
-            config.put("ioRegistries", Collections.singletonList(JanusGraphIoRegistry.class.getName()));
-            serializer.configure(config, null);
-            
             cluster = Cluster.build()
                     .addContactPoint("localhost")
                     .port(8182)
-                    .serializer(serializer)
                     .maxConnectionPoolSize(2)
                     .maxWaitForConnection(5000)
                     .reconnectInterval(1000)
@@ -55,7 +41,7 @@ public class JanusGraphConfig {
             
             g = traversal().withRemote(DriverRemoteConnection.using(cluster, "g"));
             
-            System.out.println("Successfully connected to JanusGraph using binary serialization");
+            System.out.println("Successfully connected to JanusGraph with default serializer");
             return g;
         } catch (Exception e) {
             System.err.println("Error connecting to JanusGraph: " + e.getMessage());
