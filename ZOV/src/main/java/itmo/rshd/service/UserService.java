@@ -21,11 +21,6 @@ public class UserService {
     }
 
     public User createUser(User user) {
-        User existingUser = userRepository.findByUsername(user.getUsername());
-        if (existingUser != null) {
-            // Update the existing user's ID to avoid creating a duplicate
-            user.setId(existingUser.getId());
-        }
         return userRepository.save(user);
     }
 
