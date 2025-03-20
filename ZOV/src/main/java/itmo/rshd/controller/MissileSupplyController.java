@@ -162,4 +162,14 @@ public class MissileSupplyController {
         missileSupplyGraphService.clearSupplyChain();
         return new ResponseEntity<>("Supply chain has been reset. It will be regenerated on the next application restart.", HttpStatus.OK);
     }
+    
+    @PostMapping("/admin/generate-supply-chain")
+    public ResponseEntity<String> generateSupplyChain() {
+        try {
+            int count = missileSupplyGraphService.generateSampleSupplyChain();
+            return new ResponseEntity<>("Supply chain generated with " + count + " depots.", HttpStatus.OK);
+        } catch (Exception e) {
+            return new ResponseEntity<>("Error generating supply chain: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
 } 

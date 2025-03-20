@@ -316,4 +316,170 @@ public class MissileSupplyGraphService {
         
         System.out.println("Supply chain data has been cleared successfully");
     }
+    
+    /**
+     * Generates a sample supply chain for demonstration purposes
+     * This doesn't rely on regions from the database
+     * @return number of depots created
+     */
+    public int generateSampleSupplyChain() {
+        // Create sample missile types
+        Vertex missileType1 = addMissileType("MT001", "Iskander", 500.0, 50.0);
+        Vertex missileType2 = addMissileType("MT002", "Kalibr", 1500.0, 100.0);
+        Vertex missileType3 = addMissileType("MT003", "Kinzhal", 2000.0, 150.0);
+        
+        // Create major hubs
+        Vertex moscowHub = g.addV("SupplyDepot")
+            .property("depotId", "HUB-001")
+            .property("name", "Moscow Central Hub")
+            .property("type", "REGIONAL_HUB")
+            .property("latitude", 55.7558)
+            .property("longitude", 37.6173)
+            .property("capacity", 10000)
+            .property("currentStock", 8500)
+            .property("securityLevel", "HIGH")
+            .next();
+        
+        Vertex spbHub = g.addV("SupplyDepot")
+            .property("depotId", "HUB-002")
+            .property("name", "St. Petersburg Hub")
+            .property("type", "REGIONAL_HUB")
+            .property("latitude", 59.9343)
+            .property("longitude", 30.3351)
+            .property("capacity", 8000)
+            .property("currentStock", 6500)
+            .property("securityLevel", "HIGH")
+            .next();
+            
+        Vertex novosibirskHub = g.addV("SupplyDepot")
+            .property("depotId", "HUB-003")
+            .property("name", "Novosibirsk Hub")
+            .property("type", "REGIONAL_HUB")
+            .property("latitude", 55.0084)
+            .property("longitude", 82.9357)
+            .property("capacity", 9000)
+            .property("currentStock", 7000)
+            .property("securityLevel", "HIGH")
+            .next();
+        
+        // Create city depots
+        Vertex kazan = g.addV("SupplyDepot")
+            .property("depotId", "DEPOT-001")
+            .property("name", "Kazan City Depot")
+            .property("type", "CITY_DEPOT")
+            .property("latitude", 55.7887)
+            .property("longitude", 49.1221)
+            .property("capacity", 3000)
+            .property("currentStock", 2000)
+            .property("securityLevel", "MEDIUM")
+            .next();
+            
+        Vertex samara = g.addV("SupplyDepot")
+            .property("depotId", "DEPOT-002")
+            .property("name", "Samara City Depot")
+            .property("type", "CITY_DEPOT")
+            .property("latitude", 53.1950)
+            .property("longitude", 50.1069)
+            .property("capacity", 2500)
+            .property("currentStock", 1800)
+            .property("securityLevel", "MEDIUM")
+            .next();
+            
+        Vertex vladivostok = g.addV("SupplyDepot")
+            .property("depotId", "DEPOT-003")
+            .property("name", "Vladivostok City Depot")
+            .property("type", "CITY_DEPOT")
+            .property("latitude", 43.1198)
+            .property("longitude", 131.8869)
+            .property("capacity", 2800)
+            .property("currentStock", 2100)
+            .property("securityLevel", "MEDIUM")
+            .next();
+        
+        // Create local distribution points
+        Vertex podolsk = g.addV("SupplyDepot")
+            .property("depotId", "DIST-001")
+            .property("name", "Podolsk Distribution Point")
+            .property("type", "DISTRIBUTION_POINT")
+            .property("latitude", 55.4312)
+            .property("longitude", 37.5447)
+            .property("capacity", 800)
+            .property("currentStock", 500)
+            .property("securityLevel", "STANDARD")
+            .next();
+            
+        Vertex pushkin = g.addV("SupplyDepot")
+            .property("depotId", "DIST-002")
+            .property("name", "Pushkin Distribution Point")
+            .property("type", "DISTRIBUTION_POINT")
+            .property("latitude", 59.7241)
+            .property("longitude", 30.4095)
+            .property("capacity", 700)
+            .property("currentStock", 450)
+            .property("securityLevel", "STANDARD")
+            .next();
+        
+        // Connect hubs to each other
+        addSupplyRouteWithProperties(moscowHub, spbHub, 700.0, 0.2);
+        addSupplyRouteWithProperties(moscowHub, novosibirskHub, 3000.0, 0.4);
+        addSupplyRouteWithProperties(spbHub, novosibirskHub, 3200.0, 0.5);
+        
+        // Connect hubs to city depots
+        addSupplyRouteWithProperties(moscowHub, kazan, 800.0, 0.3);
+        addSupplyRouteWithProperties(moscowHub, samara, 1000.0, 0.3);
+        addSupplyRouteWithProperties(novosibirskHub, vladivostok, 5000.0, 0.6);
+        
+        // Add more connections between city depots
+        addSupplyRouteWithProperties(kazan, samara, 400.0, 0.2);
+        addSupplyRouteWithProperties(spbHub, kazan, 1500.0, 0.4);
+        addSupplyRouteWithProperties(spbHub, samara, 1800.0, 0.5);
+        
+        // Connect city depots to distribution points (fixed)
+        addSupplyRouteWithProperties(samara, podolsk, 950.0, 0.3);
+        addSupplyRouteWithProperties(kazan, pushkin, 1200.0, 0.35);
+        
+        // Add more connections between distribution points and hubs
+        addSupplyRouteWithProperties(moscowHub, podolsk, 50.0, 0.1);
+        addSupplyRouteWithProperties(spbHub, pushkin, 30.0, 0.1);
+        
+        // Add missiles to depots
+        addMissilesToDepot("HUB-001", "MT001", 100);
+        addMissilesToDepot("HUB-001", "MT002", 50);
+        addMissilesToDepot("HUB-002", "MT001", 80);
+        addMissilesToDepot("HUB-003", "MT003", 40);
+        
+        // Return total count of depots
+        return 8;
+    }
+    
+    private Edge addSupplyRouteWithProperties(Vertex source, Vertex target, double distance, double riskFactor) {
+        return g.addE("SupplyRoute")
+            .from(source)
+            .to(target)
+            .property("distance", distance)
+            .property("riskFactor", riskFactor)
+            .property("isActive", true)
+            .property("transportType", getTransportTypeByRisk(riskFactor))
+            .property("securityLevel", getSecurityLevelByRisk(riskFactor))
+            .property("capacity", getCapacityByDistance(distance))
+            .next();
+    }
+    
+    private String getTransportTypeByRisk(double riskFactor) {
+        if (riskFactor > 0.4) return "ARMORED_CONVOY";
+        if (riskFactor > 0.2) return "SECURE_TRUCK";
+        return "LIGHT_VEHICLE";
+    }
+    
+    private String getSecurityLevelByRisk(double riskFactor) {
+        if (riskFactor > 0.4) return "HIGH";
+        if (riskFactor > 0.2) return "MEDIUM";
+        return "STANDARD";
+    }
+    
+    private int getCapacityByDistance(double distance) {
+        if (distance > 1000) return 500;
+        if (distance > 300) return 800;
+        return 1000;
+    }
 }

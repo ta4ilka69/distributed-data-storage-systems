@@ -1,79 +1,120 @@
-import api from './api';
-import { SupplyDepot, SupplyRoute } from '../types';
+import api from "./api";
+import { SupplyDepot, SupplyRoute } from "../types";
 
 export const supplyService = {
   // Depots
   getAllDepots: async (): Promise<SupplyDepot[]> => {
-    const response = await api.get('/missile-supply/depots');
+    const response = await api.get("/missile-supply/depots");
     return response.data;
   },
-  
+
   getDepotById: async (depotId: string): Promise<SupplyDepot> => {
     const response = await api.get(`/missile-supply/depots/${depotId}`);
     return response.data;
   },
-  
-  addDepot: async (depot: Omit<SupplyDepot, 'currentStock'>): Promise<SupplyDepot> => {
-    const response = await api.post('/missile-supply/depots', null, { 
+
+  addDepot: async (
+    depot: Omit<SupplyDepot, "currentStock">
+  ): Promise<SupplyDepot> => {
+    const response = await api.post("/missile-supply/depots", null, {
       params: {
         depotId: depot.depotId,
         name: depot.name,
         latitude: depot.latitude,
         longitude: depot.longitude,
-        capacity: depot.capacity
-      } 
+        capacity: depot.capacity,
+      },
     });
     return response.data;
   },
-  
+
   // Routes
   getAllRoutes: async (): Promise<SupplyRoute[]> => {
-    const response = await api.get('/missile-supply/routes');
+    const response = await api.get("/missile-supply/routes");
     return response.data;
   },
-  
-  getOptimalRoute: async (fromDepotId: string, toDepotId: string): Promise<any[]> => {
-    const response = await api.get('/missile-supply/routes/optimal', { 
-      params: { fromDepotId, toDepotId } 
+
+  getOptimalRoute: async (
+    fromDepotId: string,
+    toDepotId: string
+  ): Promise<any[]> => {
+    const response = await api.get("/missile-supply/routes/optimal", {
+      params: { fromDepotId, toDepotId },
     });
     return response.data;
   },
-  
-  addSupplyRoute: async (route: Omit<SupplyRoute, 'isActive'>): Promise<SupplyRoute> => {
-    const response = await api.post('/missile-supply/routes', null, { 
+
+  addSupplyRoute: async (
+    route: Omit<SupplyRoute, "isActive">
+  ): Promise<SupplyRoute> => {
+    const response = await api.post("/missile-supply/routes", null, {
       params: {
         sourceDepotId: route.sourceDepotId,
         targetDepotId: route.targetDepotId,
         distance: route.distance,
-        riskFactor: route.riskFactor
-      } 
+        riskFactor: route.riskFactor,
+      },
     });
     return response.data;
   },
-  
-  updateRouteStatus: async (sourceDepotId: string, targetDepotId: string, isActive: boolean): Promise<SupplyRoute> => {
-    const response = await api.put(`/missile-supply/routes/${sourceDepotId}/${targetDepotId}`, null, {
-      params: { isActive }
-    });
+
+  updateRouteStatus: async (
+    sourceDepotId: string,
+    targetDepotId: string,
+    isActive: boolean
+  ): Promise<SupplyRoute> => {
+    const response = await api.put(
+      `/missile-supply/routes/${sourceDepotId}/${targetDepotId}`,
+      null,
+      {
+        params: { isActive },
+      }
+    );
     return response.data;
   },
-  
+
   // Missiles in depots
-  getDepotsWithMissileType: async (missileTypeId: string, minQuantity: number = 1): Promise<any[]> => {
-    const response = await api.get('/missile-supply/depots/missiles', { 
-      params: { missileTypeId, minQuantity } 
+  getDepotsWithMissileType: async (
+    missileTypeId: string,
+    minQuantity: number = 1
+  ): Promise<any[]> => {
+    const response = await api.get("/missile-supply/depots/missiles", {
+      params: { missileTypeId, minQuantity },
     });
     return response.data;
   },
-  
-  addMissilesToDepot: async (depotId: string, missileTypeId: string, quantity: number): Promise<void> => {
-    await api.post(`/missile-supply/depots/${depotId}/missiles`, null, { 
-      params: { missileTypeId, quantity } 
+
+  addMissilesToDepot: async (
+    depotId: string,
+    missileTypeId: string,
+    quantity: number
+  ): Promise<void> => {
+    await api.post(`/missile-supply/depots/${depotId}/missiles`, null, {
+      params: { missileTypeId, quantity },
     });
   },
-  
+
   // Admin operations
   resetSupplyChain: async (): Promise<void> => {
-    await api.post('/missile-supply/admin/reset-supply-chain');
-  }
-}; 
+    await api.post("/missile-supply/admin/reset-supply-chain");
+  },
+
+  generateSampleSupplyChain: async (): Promise<string> => {
+    const response = await api.post(
+      "/missile-supply/admin/generate-supply-chain"
+    );
+    return response.data;
+  },
+
+  // Utility methods
+  refreshSupplyChainData: async (): Promise<{
+    depots: SupplyDepot[];
+    routes: SupplyRoute[];
+  }> => {
+    const [depots, routes] = await Promise.all([
+      supplyService.getAllDepots(),
+      supplyService.getAllRoutes(),
+    ]);
+    return { depots, routes };
+  },
+};
