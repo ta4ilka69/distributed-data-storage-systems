@@ -4,16 +4,23 @@ import {
   MapIcon, 
   UserGroupIcon, 
   RocketLaunchIcon,
-  ShieldCheckIcon
+  ShieldCheckIcon,
+  ArrowRightOnRectangleIcon
 } from '@heroicons/react/24/outline';
 
 interface HeaderProps {
   currentUser: User | null;
   currentTab: string;
   onChangeTab: (tab: string) => void;
+  onLogout: () => void;
 }
 
-const Header: React.FC<HeaderProps> = ({ currentUser, currentTab, onChangeTab }) => {
+const Header: React.FC<HeaderProps> = ({ 
+  currentUser, 
+  currentTab, 
+  onChangeTab,
+  onLogout 
+}) => {
   const isGovernmentUser = currentUser?.status === SocialStatus.VIP || 
                           currentUser?.status === SocialStatus.IMPORTANT;
 
@@ -27,19 +34,29 @@ const Header: React.FC<HeaderProps> = ({ currentUser, currentTab, onChangeTab })
           </div>
           
           {currentUser && (
-            <div className="flex items-center space-x-1">
-              <span className="text-sm text-gray-600">Welcome,</span>
-              <span className="font-medium">{currentUser.fullName}</span>
-              <span 
-                className={`ml-2 px-2 py-1 rounded-full text-xs font-semibold ${
-                  currentUser.status === SocialStatus.LOW ? 'bg-red-100 text-red-800' : 
-                  currentUser.status === SocialStatus.REGULAR ? 'bg-blue-100 text-blue-800' : 
-                  currentUser.status === SocialStatus.IMPORTANT ? 'bg-purple-100 text-purple-800' : 
-                  'bg-yellow-100 text-yellow-800'
-                }`}
+            <div className="flex items-center space-x-4">
+              <div className="flex items-center space-x-1">
+                <span className="text-sm text-gray-600">Welcome,</span>
+                <span className="font-medium">{currentUser.fullName}</span>
+                <span 
+                  className={`ml-2 px-2 py-1 rounded-full text-xs font-semibold ${
+                    currentUser.status === SocialStatus.LOW ? 'bg-red-100 text-red-800' : 
+                    currentUser.status === SocialStatus.REGULAR ? 'bg-blue-100 text-blue-800' : 
+                    currentUser.status === SocialStatus.IMPORTANT ? 'bg-purple-100 text-purple-800' : 
+                    'bg-yellow-100 text-yellow-800'
+                  }`}
+                >
+                  {currentUser.status}
+                </span>
+              </div>
+              
+              <button
+                onClick={onLogout}
+                className="flex items-center px-3 py-2 text-sm font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-md"
               >
-                {currentUser.status}
-              </span>
+                <ArrowRightOnRectangleIcon className="h-5 w-5 mr-1" />
+                <span>Logout</span>
+              </button>
             </div>
           )}
         </div>

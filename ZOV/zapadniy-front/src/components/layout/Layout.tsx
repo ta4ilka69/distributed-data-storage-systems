@@ -8,20 +8,23 @@ interface LayoutProps {
   currentUser: User | null;
   currentTab: string;
   onChangeTab: (tab: string) => void;
+  onLogout: () => void;
 }
 
 const Layout: React.FC<LayoutProps> = ({ 
   children, 
   currentUser, 
   currentTab, 
-  onChangeTab 
+  onChangeTab,
+  onLogout
 }) => {
   return (
     <div className="min-h-screen flex flex-col">
       <Header 
         currentUser={currentUser} 
         currentTab={currentTab} 
-        onChangeTab={onChangeTab} 
+        onChangeTab={onChangeTab}
+        onLogout={onLogout}
       />
       
       <main className="flex-grow">

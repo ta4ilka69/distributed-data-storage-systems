@@ -4,6 +4,7 @@ import { Region, RegionType, GeoLocation } from '../types';
 export const regionService = {
   getAllRegions: async (): Promise<Region[]> => {
     const response = await api.get('/regions');
+    console.warn(response.data);
     return response.data;
   },
   

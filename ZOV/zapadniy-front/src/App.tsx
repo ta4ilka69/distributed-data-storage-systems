@@ -3,6 +3,7 @@ import { Layout, UserProfile, NearbyUsersList, RegionMap, RegionDetails, LoginFo
 import { useCurrentUser, useNearbyUsers, useRegions } from './hooks';
 import { Region, RegionType, SocialStatus, User } from './types';
 import { socketService } from './services';
+import { authService } from './services/authService';
 
 function App() {
   const [currentTab, setCurrentTab] = useState('profile');
@@ -112,6 +113,16 @@ function App() {
     return () => clearInterval(interval);
   }, [currentUser, updateLocation]);
 
+  // Add useEffect for initial auth state restoration
+  useEffect(() => {
+    const savedUser = authService.getAuthenticatedUser();
+    if (savedUser) {
+      setLoggedInUser(savedUser);
+      setCurrentUser(savedUser);
+      setIsLoggedIn(true);
+    }
+  }, []);
+
   const isGovernmentUser = currentUser?.status === SocialStatus.VIP || 
                          currentUser?.status === SocialStatus.IMPORTANT;
 
@@ -132,6 +143,15 @@ function App() {
     setLoggedInUser(user);
     setCurrentUser(user);
     setIsLoggedIn(true);
+    authService.setAuthenticatedUser(user);
+  };
+
+  const handleLogout = () => {
+    setLoggedInUser(null);
+    setCurrentUser(null);
+    setIsLoggedIn(false);
+    authService.clearAuthenticatedUser();
+    socketService.disconnect();
   };
 
   if (!isLoggedIn) {
@@ -143,6 +163,7 @@ function App() {
       currentUser={currentUser} 
       currentTab={currentTab} 
       onChangeTab={handleTabChange}
+      onLogout={handleLogout}
     >
       {notification && (
         <div className={`fixed top-4 right-4 p-4 rounded-md shadow-lg ${

@@ -132,22 +132,37 @@ public class UserService {
             User target = targetOpt.get();
             double raterImpact = 0;
             
-            // Calculate impact based on the target's status
+            // If rater is VIP or IMPORTANT, they have special rating power
+            if (rater.getStatus() == SocialStatus.VIP || rater.getStatus() == SocialStatus.IMPORTANT) {
+                double multiplier = rater.getStatus() == SocialStatus.VIP ? 2.0 : 1.5;
+                double baseImpact = ratingChange > 0 ? 0.5 : -0.5;
+                double impact = baseImpact * multiplier;
+                
+                // Calculate new rating by applying the impact
+                double newRating = target.getSocialRating() + impact;
+                
+                // Ensure rating stays within valid bounds (0-100)
+                newRating = Math.max(0, Math.min(100, newRating));
+                
+                target.setSocialRating(newRating);
+                // Update target's status based on new rating
+                updateUserStatusBasedOnRating(target);
+                return userRepository.save(target);
+            }
+            
+            // For regular and low status users, use the original impact calculation
             switch (target.getStatus()) {
                 case VIP:
-                    // Rating a VIP (like president, governors) has higher consequences
-                    raterImpact = ratingChange > 0 ? 5.0 : -10.0; // +5 for like, -10 for dislike
+                    raterImpact = ratingChange > 0 ? 5.0 : -10.0;
                     break;
                 case IMPORTANT:
-                    // Rating an important person (like mayors)
-                    raterImpact = ratingChange > 0 ? 3.0 : -7.0; // +3 for like, -7 for dislike
+                    raterImpact = ratingChange > 0 ? 3.0 : -7.0;
                     break;
                 case REGULAR:
-                    raterImpact = ratingChange > 0 ? 1.0 : -3.0; // +1 for like, -3 for dislike
+                    raterImpact = ratingChange > 0 ? 1.0 : -3.0;
                     break;
                 case LOW:
-                    // Rating someone with low status has lower impact
-                    raterImpact = ratingChange > 0 ? 0.5 : -1.0; // +0.5 for like, -1 for dislike
+                    raterImpact = ratingChange > 0 ? 0.5 : -1.0;
                     break;
             }
             
