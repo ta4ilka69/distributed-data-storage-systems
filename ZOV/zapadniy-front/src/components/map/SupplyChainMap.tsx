@@ -54,14 +54,30 @@ const SupplyChainMap: React.FC<SupplyChainMapProps> = ({
   useEffect(() => {
     const fetchData = async () => {
       try {
+        console.log('Fetching supply chain data...');
+        
         // First try to get depots
         const fetchedDepots = await supplyService.getAllDepots();
+        console.log('Fetched depots:', fetchedDepots.length);
         setDepots(fetchedDepots);
         
         // Then try to get routes separately
         try {
+          console.log('Fetching routes...');
           const fetchedRoutes = await supplyService.getAllRoutes();
-          setRoutes(fetchedRoutes);
+          console.log('Fetched routes:', fetchedRoutes);
+          
+          if (fetchedRoutes && fetchedRoutes.length > 0) {
+            console.log('Setting routes:', fetchedRoutes.length);
+            setRoutes(fetchedRoutes);
+          } else {
+            console.warn('No routes returned from API');
+            // Try to regenerate supply chain
+            await supplyService.refreshSupplyChainData();
+            const refreshedRoutes = await supplyService.getAllRoutes();
+            console.log('After refresh, routes:', refreshedRoutes.length);
+            setRoutes(refreshedRoutes);
+          }
         } catch (routeError) {
           console.error('Error fetching routes:', routeError);
           setRoutes([]);
