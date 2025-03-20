@@ -2,7 +2,6 @@ package itmo.rshd.config;
 
 import org.apache.tinkerpop.gremlin.driver.Cluster;
 import org.apache.tinkerpop.gremlin.driver.remote.DriverRemoteConnection;
-import org.apache.tinkerpop.gremlin.driver.ser.Serializers;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSource;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -26,7 +25,6 @@ public class JanusGraphConfig {
         cluster = Cluster.build()
                 .addContactPoint("localhost")
                 .port(8182)
-                .serializer(Serializers.GRAPHSON_V3D0)
                 .create();
         
         // Get traversal source
