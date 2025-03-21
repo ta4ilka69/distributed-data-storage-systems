@@ -2,7 +2,7 @@ import { Client } from '@stomp/stompjs';
 import SockJS from 'sockjs-client';
 import { User, Region } from '../types';
 
-const SOCKET_URL = 'http://localhost:8080/ws';
+const SOCKET_URL = 'http://localhost:21341/ws';
 
 class SocketService {
   private stompClient: Client | null = null;

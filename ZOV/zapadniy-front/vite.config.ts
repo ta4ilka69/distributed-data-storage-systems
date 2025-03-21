@@ -11,5 +11,9 @@ export default defineConfig({
     alias: {
       'socket.io-client': 'socket.io-client/dist/socket.io.js',
     }
+  },
+  server: {
+    host: true, // Listen on all network interfaces
+    port: 5173 // Default Vite port
   }
 })
