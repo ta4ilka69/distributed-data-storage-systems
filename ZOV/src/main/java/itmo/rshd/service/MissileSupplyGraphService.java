@@ -289,6 +289,7 @@ public class MissileSupplyGraphService {
     }
     
     // Helper method to safely get edge properties with default values
+    @SuppressWarnings("unchecked")
     private <T> T getEdgePropertySafe(Edge edge, String key, T defaultValue) {
         try {
             if (edge.properties(key).hasNext()) {
