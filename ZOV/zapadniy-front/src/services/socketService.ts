@@ -2,7 +2,8 @@ import { Client } from '@stomp/stompjs';
 import SockJS from 'sockjs-client';
 import { User, Region } from '../types';
 
-const SOCKET_URL = 'http://192.168.0.183:21341/ws';
+// Use a relative URL for WebSocket connection
+const SOCKET_URL = '/ws';
 
 class SocketService {
   private stompClient: Client | null = null;

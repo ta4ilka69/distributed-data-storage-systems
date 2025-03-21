@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { userService } from '../../services/userService';
 import { User } from '../../types';
+import api from '../../services/api';
 
 interface LoginFormProps {
   onLoginSuccess: (user: User) => void;
@@ -32,8 +33,8 @@ const LoginForm: React.FC<LoginFormProps> = ({ onLoginSuccess }) => {
 
   const fetchTestUsers = async () => {
     try {
-      const response = await fetch('http://localhost:21341/api/users/test-users');
-      const data = await response.json();
+      const response = await api.get('/users/test-users');
+      const data = response.data;
       setTestUsers(data);
       setShowTestUsers(true);
     } catch (err) {

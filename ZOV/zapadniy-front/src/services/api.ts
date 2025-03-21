@@ -1,6 +1,8 @@
 import axios from 'axios';
 
-const API_URL = 'http://192.168.0.183:21341/api';
+// Use relative URLs which will automatically use the same hostname
+// This handles both local and public access automatically
+const API_URL = '/api';
 
 const api = axios.create({
   baseURL: API_URL,

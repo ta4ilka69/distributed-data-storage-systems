@@ -14,6 +14,17 @@ export default defineConfig({
   },
   server: {
     host: true, // Listen on all network interfaces
-    port: 5173 // Default Vite port
+    port: 5173, // Default Vite port
+    proxy: {
+      '/api': {
+        target: 'http://localhost:21341',
+        changeOrigin: true,
+      },
+      '/ws': {
+        target: 'http://localhost:21341',
+        changeOrigin: true,
+        ws: true,
+      }
+    }
   }
 })
